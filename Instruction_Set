@@ -1,0 +1,8 @@
+    0|      0|halt    |Halt the computer                                         |*                       |*                    |*                    
+    1|      1|nop     |Do nothing                                                |*                       |*                    |*                    
+    2|     10|set     |Set a register to a value                                 |Destination Register    |Value to use         |*                    
+    3|     11|copy    |Copy a value from one register to another                 |Destination Register    |Source Register      |*                    
+    4|    100|addr    |Add the values of two registers                           |Destination Register    |Source Register A    |Source Register B    
+    5|    101|addv    |Add the values of a register and a constant value         |Destination Register    |Source Register      |Value to add         
+    6|    110|subr    |Subtract the values of two registers                      |Destination Register    |Source Register A    |Source Register B    
+    7|    111|subv    |Subtract the values of a register and a constant value    |Destination Register    |Source Register      |Value to subtract    
