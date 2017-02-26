@@ -1,18 +1,20 @@
 `timescale 1ns / 1ns 
 module adder_subtractor(r, carry, a, b, subtract);
-    output [0:7] r;
+    output [7:0] r;
     output carry;
-    input [0:7] a, b;
+    input [7:0] a, b;
     input subtract;
-    wire [0:7] inner_carry, b_prime;
+    wire [7:0] b_prime;
+    wire [6:0] inner_carry;
     
-    xor G0(b_prime[0], b[0], subtract);
-    xor G1(b_prime[1], b[1], subtract);
-    xor G2(b_prime[2], b[2], subtract);
-    xor G3(b_prime[3], b[3], subtract);
-    xor G4(b_prime[4], b[4], subtract);
-    xor G5(b_prime[5], b[5], subtract);
-    xor G6(b_prime[6], b[6], subtract);
+    xor #(10) G0(b_prime[0], b[0], subtract);
+    xor #(10) G1(b_prime[1], b[1], subtract);
+    xor #(10) G2(b_prime[2], b[2], subtract);
+    xor #(10) G3(b_prime[3], b[3], subtract);
+    xor #(10) G4(b_prime[4], b[4], subtract);
+    xor #(10) G5(b_prime[5], b[5], subtract);
+    xor #(10) G6(b_prime[6], b[6], subtract);
+    xor #(10) G7(b_prime[7], b[7], subtract);
 
     full_adder a0(r[0], inner_carry[0], a[0], b_prime[0], subtract);
     full_adder a1(r[1], inner_carry[1], a[1], b_prime[1], inner_carry[0]);
