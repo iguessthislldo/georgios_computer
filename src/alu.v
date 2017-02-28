@@ -1,9 +1,12 @@
-module alu(result, op, a, b)
-    output [0:7] r;
-    input op;
-    input [0:7] a, b;
+module alu(result, status, op, a, b)
+    parameter b = 8;
+    parameter op_b = 1;
+    parameter status_b = 1;
 
-    wire carry;
+    output [b-1:0]result;
+    output [status_b-1:0]status;
+    input [op_b-1:0]op;
+    input [b-1:0] a, b;
 
-    adder_subtractor as(result, carry, a, b, op);
+    adder_subtractor as(result, status[0], a, b, op[0]);
 endmodule

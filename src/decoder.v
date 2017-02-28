@@ -1,11 +1,8 @@
-module decoder(alu_op, x_sel, y_sel, z_sel, clock, op);
+module decoder(alu_op, clock, op);
     parameter b = 8; // # of bits for data
     parameter op_b = 3; // # of bits for Instructions
     parameter alu_op_b = 1; // # of bits for ALU Instructions
-    parameter sel_b = 4 // # of bits for register select
-
     output [alu_op_b-1:0] alu_op; // ALU Instruction
-    output [sel_b-1:0] x_sel, y_sel, z_sel; // Register Selection
 
     input clock;
     input [op_b-1:0] op; // Instruction
@@ -25,15 +22,19 @@ module decoder(alu_op, x_sel, y_sel, z_sel, clock, op);
             end
             4: begin
                 $display("addr");
+                alu_op[0] = 0;
             end
             5: begin
                 $display("addv");
+                alu_op[0] = 0;
             end
             6: begin
                 $display("subr");
+                alu_op[0] = 1;
             end
             7: begin
                 $display("subv");
+                alu_op[0] = 1;
             end
             default: begin
                 $display("Invalid Instruction!");

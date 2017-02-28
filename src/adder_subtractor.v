@@ -1,11 +1,15 @@
 `timescale 1ns / 1ns 
 module adder_subtractor(r, carry, a, b, subtract);
-    output [7:0] r;
+    parameter b = 8;
+
+    output [b-1:0] r;
     output carry;
-    input [7:0] a, b;
+    input [b-1:0] a, b;
     input subtract;
-    wire [7:0] b_prime;
-    wire [6:0] inner_carry;
+    wire [b-1:0] b_prime;
+    wire [b-2:0] inner_carry;
+
+    // TODO: Auto generate full adders, etc based on word size
     
     xor #(10) G0(b_prime[0], b[0], subtract);
     xor #(10) G1(b_prime[1], b[1], subtract);
