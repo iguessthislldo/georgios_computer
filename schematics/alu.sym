@@ -1,0 +1,120 @@
+v 20130925 2
+L 300 600 300 0 3 0 0 0 -1 -1
+{
+T 300 600 5 10 0 1 0 0 1
+source=alu.sch
+}
+L 300 600 700 800 3 0 0 0 -1 -1
+{
+T 300 600 5 10 0 1 0 0 1
+source=alu.sch
+}
+L 700 800 300 1000 3 0 0 0 -1 -1
+{
+T 700 800 5 10 0 1 0 0 1
+source=alu.sch
+}
+L 1100 1200 1100 600 3 0 0 0 -1 -1
+{
+T 1100 1200 5 10 0 1 0 0 1
+source=alu.sch
+}
+L 300 1600 300 1000 3 0 0 0 -1 -1
+{
+T 300 1600 5 10 0 1 0 0 1
+source=alu.sch
+}
+L 300 0 700 200 3 0 0 0 -1 -1
+{
+T 300 0 5 10 0 1 0 0 1
+source=alu.sch
+}
+L 700 200 1100 400 3 0 0 0 -1 -1
+{
+T 700 200 5 10 0 1 0 0 1
+source=alu.sch
+}
+L 700 1400 300 1600 3 0 0 0 -1 -1
+{
+T 700 1400 5 10 0 1 0 0 1
+source=alu.sch
+}
+L 1100 1200 700 1400 3 0 0 0 -1 -1
+{
+T 1100 1200 5 10 0 1 0 0 1
+source=alu.sch
+}
+L 1100 600 1100 400 3 0 0 0 -1 -1
+{
+T 1100 600 5 10 0 1 0 0 1
+source=alu.sch
+}
+P 1400 1000 1100 1000 1 1 0
+{
+T 1400 1000 5 10 0 0 0 0 1
+pintype=unknown
+T 1400 1000 5 10 0 0 0 0 1
+pinseq=0
+T 1400 1000 5 10 0 1 0 0 1
+source=alu.sch
+T 1400 1000 5 10 0 0 0 0 1
+pintype=out
+T 1200 1100 5 10 1 1 0 0 1
+pinlabel=result
+}
+P 1400 600 1100 600 1 1 0
+{
+T 1400 600 5 10 0 0 0 0 1
+pintype=unknown
+T 1400 600 5 10 0 0 0 0 1
+pinseq=0
+T 1400 600 5 10 0 1 0 0 1
+source=alu.sch
+T 1400 600 5 10 0 1 0 0 1
+pintype=out
+T 1200 700 5 10 1 1 0 0 1
+pinlabel=status
+}
+P 700 1700 700 1400 1 1 0
+{
+T 700 1700 5 10 0 0 0 0 1
+pintype=unknown
+T 700 1700 5 10 0 0 0 0 1
+pinseq=0
+T 700 1700 5 10 0 1 0 0 1
+source=alu.sch
+T 800 1700 5 10 0 0 0 0 1
+pintype=in
+T 800 1500 5 10 1 1 0 0 1
+pinlabel=OP
+}
+P 0 1300 300 1300 1 1 0
+{
+T 0 1300 5 10 0 0 0 0 1
+pintype=unknown
+T 0 1300 5 10 0 0 0 0 1
+pinseq=0
+T 0 1300 5 10 0 1 0 0 1
+source=alu.sch
+T 0 1300 5 10 0 0 0 0 1
+pintype=in
+T 100 1400 5 10 1 1 0 0 1
+pinlabel=A
+}
+P 0 300 300 300 1 1 0
+{
+T 0 300 5 10 0 0 0 0 1
+pintype=unknown
+T 0 300 5 10 0 0 0 0 1
+pinseq=0
+T 0 300 5 10 0 1 0 0 1
+source=alu.sch
+T 0 300 5 10 0 0 0 0 1
+pintype=in
+T 100 400 5 10 1 1 0 0 1
+pinlabel=B
+}
+T 395 1000 8 10 1 1 0 0 1
+refdes=ALU?
+T -5 0 8 10 0 1 0 0 1
+source=alu.sch

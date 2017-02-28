@@ -1,0 +1,2 @@
+(component-library "./schematics" "Georgios")
+(source-library "./schematics")
