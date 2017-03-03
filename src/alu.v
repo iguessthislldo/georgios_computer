@@ -1,12 +1,14 @@
-module alu(result, status, op, a, b)
-    parameter b = 8;
-    parameter op_b = 1;
-    parameter status_b = 1;
+module alu(result, status, op, a, b);
+    parameter w = 8;
+    parameter op_w = 1;
+    parameter status_w = 1;
 
-    output [b-1:0]result;
-    output [status_b-1:0]status;
-    input [op_b-1:0]op;
-    input [b-1:0] a, b;
+    output reg [w-1:0] result;
+    output reg [status_w-1:0] status;
+    input [op_w-1:0] op;
+    input [w-1:0] a, b;
 
-    adder_subtractor as(result, status[0], a, b, op[0]);
+    always @(op or a or b) begin
+        {status[0], result} = a + (op[0] ? ~b : b) + op[0];
+    end
 endmodule
