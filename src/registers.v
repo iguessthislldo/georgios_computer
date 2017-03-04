@@ -13,12 +13,14 @@ module registers(x_out, y_out, z_in, x_enb, y_enb, z_enb, x_sel, y_sel, z_sel);
     reg r_clock [N-1:0];
     reg r_reset [N-1:0];
 
+    // Registers
     genvar i;
     generate for (i = 0; i < N; i = i + 1) begin
         register r(r_out[i], r_in[i], r_clock[i], r_reset[i]);
     end
     endgenerate
 
+    // Behavior
     always @(posedge x_enb) begin
         x_out = r_out[x_sel];
     end
@@ -30,15 +32,10 @@ module registers(x_out, y_out, z_in, x_enb, y_enb, z_enb, x_sel, y_sel, z_sel);
     always @(posedge z_enb) begin
         r_in[z_sel] = z_in;
         r_clock[z_sel] = 1;
+        $display("Register[%h] = %h", z_sel, z_in);
     end
 
     always @(negedge z_enb) begin
         r_clock[z_sel] = 0;
-    end
-
-    // Dump Waveform
-    initial begin
-        $dumpfile("registers.vcd");
-        $dumpvars(0, r_out);
     end
 endmodule

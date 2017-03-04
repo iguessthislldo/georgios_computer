@@ -12,10 +12,12 @@ module decoder(alu_op, flags, clock, op);
 
     always @(posedge clock) begin
         case (op)
-            0:;
-            1: begin
+            0: begin
                 $display("halt");
                 $finish;
+            end
+            1: begin
+                $display("nop");
             end
             2: begin
                 $display("set");
