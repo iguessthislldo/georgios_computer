@@ -1,12 +1,12 @@
 module register(out, in, clock, reset);
-    parameter b = 8;
+    parameter w = 8;
 
-    output [b-1:0] out;
-    input [b-1:0] in;
+    output [w-1:0] out;
+    input [w-1:0] in;
     input clock;
     input reset;
 
-    reg [b-1:0] out;
+    reg [w-1:0] out;
 
     always @(posedge clock) begin
         if (reset) out = 0;

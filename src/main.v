@@ -1,27 +1,6 @@
 `timescale 1ns / 1ns 
 module main;
 
-    // Word/Data Bus Size
-    parameter w = 8;
-    
-    // ALU
-    parameter alu_op_w = 1;
-    parameter alu_status_w = 1;
-
-    //reg [31:0] rom [0:3];
-    //reg [31:0] current;
-    //reg [7:0] iter;
-    
-    wire [w-1:0] result;
-    wire status;
-    reg [w-1:0] a, b;
-    reg op;
-    alu #(
-        .w(w),
-        .op_w(alu_op_w),
-        .status_w(alu_status_w)
-    ) alu0(result, status, op, a, b);
-
     // Clock
     reg clock;
     initial begin
@@ -29,14 +8,74 @@ module main;
         forever #100 clock = ~clock;
     end
 
-    // Dump Waveform
-    initial begin
-        $dumpfile("dump.vcd");
-        $dumpvars(0, result, status, a, b, op);
+    // Word/Data Bus Size
+    parameter w = 8;
 
-        a = 8'h02;
-        b = 8'h06;
-        op = 1'b0;
+    parameter op_w = 3;
+    wire [op_w-1:0] i0;
+    wire [w-1:0] i1, i2, i3;
+    
+    // ALU
+    parameter alu_op_w = 1;
+    parameter alu_status_w = 1;
+
+    wire [w-1:0] result;
+    wire alu_status;
+    wire [w-1:0] a, b;
+    wire alu_op;
+
+    alu #(
+        .w(w),
+        .op_w(alu_op_w),
+        .status_w(alu_status_w)
+    ) alu0(result, alu_status, alu_op, a, b);
+
+    // Registers
+    parameter sel_w = 4;
+    wire [w-1:0] x, y, z;
+    wire [sel_w-1:0] x_sel, y_sel, z_sel;
+    wire x_enb, y_enb, z_enb;
+
+    registers #(
+        .sel_w(sel_w)
+    ) registers0(
+        x, y, z,
+        x_enb, y_enb, z_enb,
+        x_sel, y_sel, z_sel
+    );
+
+    // Router
+    parameter flags_w = 6;
+    wire [0:flags_w-1] flags;
+
+    router #(
+        .w(w),
+        .flags_w(flags_w),
+        .sel_w(sel_w)
+    ) router0 (
+        a, b,
+        z,
+        x_sel, y_sel, z_sel,
+        x_enb, y_enb, z_enb,
+        flags,
+        i1, i2, i3,
+        result,
+        x, y
+    );
+
+    // Decode
+
+    decoder #(
+        .w(w),
+        .op_w(op_w),
+        .flags_w(flags_w),
+        .alu_op_w(alu_op_w)
+    ) decoder0(alu_op, flags, clock, i0);
+
+    initial begin
+        // Dump Waveform
+        //$dumpfile("dump.vcd");
+        //$dumpvars(0, result, , a, b, op);
     end
 
     initial #10000 $finish;
@@ -50,6 +89,10 @@ module main;
     //    current = rom[iter];
     //end
 
+    //reg [31:0] rom [0:3];
+    //reg [31:0] current;
+    //reg [7:0] iter;
+    
 
     //initial $readmemh("data", rom);
 

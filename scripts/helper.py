@@ -156,10 +156,12 @@ if len(sys.argv) > 1 and sys.argv[1] == "codes":
                 print('|', end='')
         print('')
 else:
+    print('- DEMUX ------------')
     for k, v in outputs.items():
         print(k)
         for i in v['demux']:
             print('   ', i)
+    print('- MUX --------------')
     for k, v in inputs.items():
         print(k)
         for i in v['mux']:

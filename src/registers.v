@@ -1,15 +1,15 @@
 module registers(x_out, y_out, z_in, x_enb, y_enb, z_enb, x_sel, y_sel, z_sel);
-    parameter b = 8;
-    parameter N_b = 4; // Selection bits
-    parameter N = 2^N_b; // Number of registers
+    parameter w = 8;
+    parameter sel_w = 4; // Selection bits
+    parameter N = 2^sel_w; // Number of registers
 
-    output reg [b-1:0] x_out, y_out;
-    input [b-1:0] z_in;
+    output reg [w-1:0] x_out, y_out;
+    input [w-1:0] z_in;
     input x_enb, y_enb, z_enb;
-    input [N_b-1:0] x_sel, y_sel, z_sel;
+    input [sel_w-1:0] x_sel, y_sel, z_sel;
 
-    wire [b-1:0] r_out [N-1:0];
-    reg [b-1:0] r_in [N-1:0];
+    wire [w-1:0] r_out [N-1:0];
+    reg [w-1:0] r_in [N-1:0];
     reg r_clock [N-1:0];
     reg r_reset [N-1:0];
 
@@ -34,5 +34,11 @@ module registers(x_out, y_out, z_in, x_enb, y_enb, z_enb, x_sel, y_sel, z_sel);
 
     always @(negedge z_enb) begin
         r_clock[z_sel] = 0;
+    end
+
+    // Dump Waveform
+    initial begin
+        $dumpfile("registers.vcd");
+        $dumpvars(0, r_out);
     end
 endmodule

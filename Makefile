@@ -1,7 +1,7 @@
 C := iverilog
 TMP_DIR := tmp
 
-FILES := src/main.v src/alu.v
+FILES := src/main.v src/alu.v src/router.v src/register.v src/registers.v src/decoder.v
 OUTPUT=georgios
 
 all:
