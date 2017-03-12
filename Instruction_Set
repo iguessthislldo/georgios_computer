@@ -1,8 +1,51 @@
- 0|      0|halt  |Halt the computer                  |*    |*   |*  
- 1|      1|nop   |Do nothing                         |*    |*   |*  
- 2|     10|set   |Set a register                     |Dest |Val |*  
- 3|     11|copy  |Copy one register to another       |Dest |Src |*  
- 4|    100|addr  |Add two registers                  |Dest |Src |Src
- 5|    101|addv  |Add register and a constant value  |Dest |Src |Val
- 6|    110|subr  |Subtract two registers             |Dest |Src |Src
- 7|    111|subv  |Subtract a register and a constant |Dest |Src |Val
+ 1|   0000|nop   |Do nothing                         |*    |*   |*  
+
+load
+save
+
+=
+    set
+    copy
+
++
+    addv
+    addr
+-
+    subv
+    subr
+*
+    mulv
+    mulr
+/
+    divv
+    divr
+%
+    modv
+    modr
+**
+    powv
+    powr
+
+~
+&
+|
+^
+<<
+>>
+
+==
+!=
+>
+>=
+<
+<=
+
+!
+&&
+||
+^^
+
+if $condition $place
+go $place
+
+ f|   1111|halt  |Halt the computer                  |*    |*   |*  

@@ -1,19 +1,19 @@
-# Fibonacci Sequence Computation
-
-# Initial Values
-# 0, 1
+// Fibonacci Sequence Computation
+//
+// Initial Values
+// 0, 1
 set 0 0
 set 1 1
 
-# 1, 2
+// 1, 2
 addr 0 0 1
 addr 1 0 1
 
-# 3, 5
+// 3, 5
 addr 0 0 1
 addr 1 0 1
 
-# ...
+// ...
 addr 0 0 1
 addr 1 0 1
 addr 0 0 1
@@ -21,11 +21,11 @@ addr 1 0 1
 addr 0 0 1
 addr 1 0 1
 
-# 90, e9 (144, 233 in base 10)
+// 90, e9 (144, 233 in base 10)
 addr 0 0 1
 addr 1 0 1
 
-# To continue would overflow the registers
+// To continue would overflow the registers
 
-# Done
+// Done
 halt
