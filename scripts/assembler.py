@@ -27,13 +27,13 @@ for lineno, line in enumerate(input_path.read_text().split('\n')):
         print("{}: \"{}\"".format(lineno, line))
         parts = line.split()
         op = ops[parts[0]]
-        instruction = [0, op]
+        instruction = [op]
         arguments = [list(i) for i in parts[1:]]
         for i in range(0, NUMBER_OF_ARGUMENTS):
             if i < len(arguments):
                 instruction.extend([int(n, 16) for n in arguments[i]])
             else:
-                instruction.extend([0,0])
+                instruction.extend([0])
         print('   ', instruction)
         image.extend(instruction)
 

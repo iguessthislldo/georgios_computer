@@ -48,7 +48,7 @@ module decoder(alu_op, flags, clock, op);
                 flags = 6'b110110;
             end
             default: begin
-                $display("Invalid Instruction!");
+                $display("Invalid Instruction! %h", op);
                 $finish;
             end
         endcase

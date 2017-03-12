@@ -44,9 +44,9 @@ module router(a, b, z,
     always @(i1 or flags) begin
         if (flags[3]) begin
             z_sel = i1;
+            #20
             z_enb = 1'b1;
-        end else begin
-            z_sel = 4'bxxxx;
+            #10
             z_enb = 1'b0;
         end
     end
@@ -54,9 +54,9 @@ module router(a, b, z,
     always @(i2 or flags) begin
         if (flags[4]) begin
             x_sel = i2;
+            #10
             x_enb = 1'b1;
-        end else begin
-            x_sel = 4'bxxxx;
+            #20
             x_enb = 1'b0;
         end
     end
@@ -64,13 +64,10 @@ module router(a, b, z,
     always @(i3 or flags) begin
         if (flags[5]) begin
             y_sel = i3;
+            #10
             y_enb = 1'b1;
-        end else begin
-            y_sel = 4'bxxxx;
+            #20
             y_enb = 1'b0;
         end
     end
-
-
-
 endmodule

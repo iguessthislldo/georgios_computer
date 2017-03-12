@@ -9,6 +9,6 @@ module alu(result, status, op, a, b);
     input [w-1:0] a, b;
 
     always @(op or a or b) begin
-        {status[0], result} = a + (op[0] ? ~b : b) + op[0];
+        {status[0], result} = a + ({w{op[0]}} ^ b) + op[0];
     end
 endmodule
