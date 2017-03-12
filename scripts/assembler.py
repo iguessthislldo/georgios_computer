@@ -3,11 +3,11 @@ from pathlib import Path
 
 NUMBER_OF_ARGUMENTS = 3
 
-if len(sys.argv) != 3:
-    sys.exit('usage: {} INPUT_PATH OUTPUT_PATH'.format(sys.argv[0]))
+if len(sys.argv) != 2:
+    sys.exit('usage: {} INPUT_PATH'.format(sys.argv[0]))
 
 input_path = Path(sys.argv[1])
-output_path = Path(sys.argv[2])
+output_path = Path("image")
 
 ops = {
     "halt": 0,
@@ -23,7 +23,7 @@ ops = {
 image = []
 
 for lineno, line in enumerate(input_path.read_text().split('\n')):
-    if line:
+    if line and line.lstrip()[0] != '#':
         print("{}: \"{}\"".format(lineno, line))
         parts = line.split()
         op = ops[parts[0]]

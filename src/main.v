@@ -21,12 +21,14 @@ module main;
     // Clock
     reg clock;
     initial begin
+        #100
+        $display("Georgios Begin");
         clock = 0;
         forever begin
             if (clock) 
-                $display("\n====================== TOCK");
+                $display("\n%0t ====================== TOCK", $time);
             else
-                $display("\n---------------------- tick");
+                $display("\n%0t ---------------------- tick", $time);
             #100 clock = ~clock;
         end
     end
@@ -93,7 +95,7 @@ module main;
     ) decoder0(alu_op, flags, clock, i0);
 
     initial begin
-        file = $fopen("test.bin", "rb");
+        file = $fopen("image", "rb");
 
         read_value = $fgetc(file);
         while (read_value != -1) begin
@@ -124,16 +126,32 @@ module main;
             $finish;
         end
 
-        for (pc = 0; pc < no_instructions; pc++) begin
+        pc = 0;
+        // Dump Waveform
+        //$dumpfile("dump.vcd");
+        //$dumpvars(0, result, , a, b, op);
+    end
+
+    always @(posedge clock) begin
+        if (pc < no_instructions) begin
             i0 = memory[pc][0];
             i1 = memory[pc][1];
             i2 = memory[pc][2];
             i3 = memory[pc][3];
-            #200;
+
+            #150 
+            i0 = 8'hxx;
+            i1 = 8'hxx;
+            i2 = 8'hxx;
+            i3 = 8'hxx;
+
+            pc++;
+        end else begin
+            if (i0 != 0) begin
+                $display("No more instructions");
+                $finish;
+            end
         end
-        // Dump Waveform
-        //$dumpfile("dump.vcd");
-        //$dumpvars(0, result, , a, b, op);
     end
     
 endmodule 

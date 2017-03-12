@@ -23,6 +23,10 @@ module router(a, b, z,
         z_enb = 1'b0;
     end
 
+    always @(i1) $display("%0t i1 = %h", $time, i1);
+    always @(i2) $display("%0t i2 = %h", $time, i2);
+    always @(i3) $display("%0t i3 = %h", $time, i3);
+
     always @(flags or i2 or x or result) begin
         case (flags[0:1])
             0: z = 8'hxx;

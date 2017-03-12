@@ -11,39 +11,41 @@ module decoder(alu_op, flags, clock, op);
     input [op_w-1:0] op; // Instruction
 
     always @(posedge clock) begin
+        #10
+        $display("%0t OP Decode: %h", $time, op);
         case (op)
             0: begin
-                $display("halt");
+                $display("    halt\n\nGeorgios Done");
                 $finish;
             end
             1: begin
-                $display("nop");
+                $display("    nop");
             end
             2: begin
-                $display("set");
+                $display("    set");
                 flags = 6'b01x1xx;
             end
             3: begin
-                $display("copy");
+                $display("    copy");
                 flags = 6'b10x11x;
             end
             4: begin
-                $display("addr");
+                $display("    addr");
                 alu_op[0] = 1'b0;
                 flags = 6'b111111;
             end
             5: begin
-                $display("addv");
+                $display("    addv");
                 alu_op[0] = 1'b0;
                 flags = 6'b110110;
             end
             6: begin
-                $display("subr");
+                $display("    subr");
                 alu_op[0] = 1'b1;
                 flags = 6'b111111;
             end
             7: begin
-                $display("subv");
+                $display("    subv");
                 alu_op[0] = 1'b1;
                 flags = 6'b110110;
             end
@@ -52,5 +54,8 @@ module decoder(alu_op, flags, clock, op);
                 $finish;
             end
         endcase
+        #80
+        alu_op[0] = 1'bx;
+        flags = 6'bxxxxxx;
     end
 endmodule

@@ -32,7 +32,7 @@ module registers(x_out, y_out, z_in, x_enb, y_enb, z_enb, x_sel, y_sel, z_sel);
     always @(posedge z_enb) begin
         r_in[z_sel] = z_in;
         r_clock[z_sel] = 1;
-        $display("Register[%h] = %h", z_sel, z_in);
+        $display("%0t r[%h] = %h", $time, z_sel, z_in);
     end
 
     always @(negedge z_enb) begin
