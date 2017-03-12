@@ -10,7 +10,9 @@ simulation.
 The current iteration is Georgios 2 which consists of 8 bit data size, 8
 instructions, and by default 16 registers. It only has instructions for
 changing register values, adding and subtracting, each by a value or a
-register, along with nop and halt instructions.
+register, along with nop and halt instructions. It takes its instructions
+from the `image` binary file made by a very simple assembler:
+`scripts/assembler.py`.
 
 Flow control (Jumps) and logical operations are being planned for the
 next iteration, Georgios 3.
