@@ -1,6 +1,6 @@
 module alu(result, status, op, a, b);
     parameter w = 8;
-    parameter op_w = 1;
+    parameter op_w = 2;
     parameter status_w = 1;
 
     output reg [w-1:0] result;
@@ -9,7 +9,14 @@ module alu(result, status, op, a, b);
     input [w-1:0] a, b;
 
     always @(op or a or b) begin
-        {status[0], result} = a + ({w{op[0]}} ^ b) + op[0];
+        case (op)
+            0:
+            1:
+                {status[0], result} = a + ({w{op[0]}} ^ b) + op[0];
+            2: begin
+                {status[0], result} = a * b;
+            default:
+        endcase
 
         // Report
         if (status[0] == 0)

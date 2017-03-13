@@ -14,5 +14,6 @@ register, along with nop and halt instructions. It takes its instructions
 from the `image` binary file made by a very simple assembler:
 `scripts/assembler.py`.
 
-Flow control (Jumps) and logical operations are being planned for the
-next iteration, Georgios 3.
+## Registers
+`0`
+%pc

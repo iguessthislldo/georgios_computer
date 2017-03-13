@@ -1,4 +1,13 @@
-module registers(x_out, y_out, z_in, x_enb, y_enb, z_enb, x_sel, y_sel, z_sel);
+module registers(
+    x_out, y_out, z_in,
+    x_enb, y_enb, z_enb,
+    x_sel, y_sel, z_sel
+    pc_in, pc_out, pc_enb,
+    flags_in, flags_out, flags_enb,
+    alus_in, alus_out, alus_enb,
+    low_in, low_out, low_enb,
+    high_in, high_out, high_enb,
+);
     parameter w = 8;
     parameter sel_w = 4; // Selection bits
     parameter N = 2^sel_w; // Number of registers
@@ -13,9 +22,19 @@ module registers(x_out, y_out, z_in, x_enb, y_enb, z_enb, x_sel, y_sel, z_sel);
     reg r_clock [N-1:0];
     reg r_reset [N-1:0];
 
-    // Registers
+    output reg [w-1:0] pc_out, 
+
+    // Special Registers
+    parameter N_special = 5;
+    register pc(r_out[0], r_in[0], r_clock[0], r_reset[0]);
+    register flags(r_out[1], r_in[1], r_clock[1], r_reset[1]);
+    register alus(r_out[2], r_in[2], r_clock[2], r_reset[2]);
+    register low(r_out[3], r_in[3], r_clock[3], r_reset[3]);
+    register high(r_out[4], r_in[4], r_clock[4], r_reset[4]);
+
+    // General Purpose Registers
     genvar i;
-    generate for (i = 0; i < N; i = i + 1) begin
+    generate for (i = N_special; i < N; i = i + 1) begin
         register r(r_out[i], r_in[i], r_clock[i], r_reset[i]);
     end
     endgenerate
