@@ -15,5 +15,12 @@ from the `image` binary file made by a very simple assembler:
 `scripts/assembler.py`.
 
 ## Registers
-`0`
-%pc
+pc
+flags
+alu\_flags
+low
+hign
+r0
+r1
+r2
+...

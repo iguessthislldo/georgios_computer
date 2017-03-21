@@ -1,0 +1,54 @@
+v 20130925 2
+B 500 0 2500 1500 3 0 0 0 -1 -1 0 -1 -1 -1 -1 -1
+P 200 800 500 800 1 1 0
+{
+T 200 800 5 10 0 0 0 0 1
+pintype=unknown
+T 155 895 5 10 1 1 0 0 1
+pinlabel=OP
+T 200 800 5 10 0 0 0 0 1
+pinseq=0
+T 200 800 5 10 0 0 0 0 1
+pintype=in
+}
+P 3300 800 3000 800 1 1 0
+{
+T 3300 800 5 10 0 0 0 0 1
+pintype=unknown
+T 3745 895 5 10 1 1 0 6 1
+pinlabel=ALU OP
+T 3300 800 5 10 0 0 0 0 1
+pinseq=0
+T 3300 800 5 10 0 0 0 0 1
+pintype=out
+}
+P 200 200 500 200 1 0 0
+{
+T 200 200 5 10 0 0 0 0 1
+pintype=unknown
+T -45 295 5 10 1 1 0 0 1
+pinlabel=clock
+T 200 200 5 10 0 0 0 0 1
+pinseq=0
+T 200 200 5 10 0 0 0 0 1
+pintype=in
+}
+P 3300 200 3000 200 1 1 0
+{
+T 3300 200 5 10 0 0 0 0 1
+pintype=unknown
+T 3645 295 5 10 1 1 0 6 1
+pinlabel=routing
+T 3300 200 5 10 0 0 0 0 1
+pinseq=0
+T 3300 200 5 10 0 0 0 0 1
+pintype=out
+}
+L 500 300 600 200 3 0 0 0 -1 -1
+L 600 200 500 100 3 0 0 0 -1 -1
+T 460 1600 8 10 1 1 0 0 1
+refdes=D?
+T -40 0 8 10 0 1 0 0 1
+source=decoder.sch
+T 1200 100 9 10 1 0 0 0 1
+Control/Decode
