@@ -1,0 +1,7 @@
+georgios;assembly;;
+
+saverv %mem a
+loadr %0 %mem
+output %0
+
+halt

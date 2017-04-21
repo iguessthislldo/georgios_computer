@@ -1,19 +1,10 @@
-C := iverilog
-TMP_DIR := tmp
-
-FILES := src/main.v src/alu.v src/router.v src/register.v src/registers.v src/decoder.v
 OUTPUT=georgios
+SRC=vm_src
 
 all:
-	$(C) -o $(OUTPUT) $(FILES)
+	g++ $(SRC)/main.cpp $(SRC)/execute.cpp -o $(OUTPUT)
 
-$(TMP_DIR):
-	mkdir -p $(TMP_DIR)
-
-.PHONY: test
-test: $(TMP_DIR)
-	# Nothing
-
-.PHONY: clean
 clean:
-	rm -fr $(OUTPUT) $(TMP_DIR)
+	rm -fr $(OUTPUT)
+
+

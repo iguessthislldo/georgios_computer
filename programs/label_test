@@ -1,8 +1,0 @@
-    set 0 1
-
-label:
-    set 0 2
-    addr 0 3 f
-
-another_label:
-    copy f 2

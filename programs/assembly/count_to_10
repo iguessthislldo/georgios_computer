@@ -1,0 +1,17 @@
+georgios;assembly;;
+
+// Init %0 to 0
+set %0 0
+
+// Loop
+LOOP:
+
+// Add 1 to %0, Display it
+addv %0 %0 1
+output  %0
+
+// Goto LOOP if %0 < a (10 in hex)
+ltv %1 %0 a
+ifv %1 @LOOP
+
+halt
