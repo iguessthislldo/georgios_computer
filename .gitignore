@@ -1,3 +1,5 @@
 georgios
 *.vcd
 tmp
+__pycache__
+.venv
