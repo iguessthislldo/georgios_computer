@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "System.hpp"
 
 /*
@@ -7,69 +9,60 @@
 
 void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
     word_t next_cflags = 0x00;
-    /*printf(
+    fprintf(stderr,
         "Execute %u, %u, %u, %u\n", i0, i1, i2, i3
-    );*/
+    );
     switch (i0) {
-    case 0x00:
-        //printf("nop\n");
+    case 0x00: // nop
         break;
-    case 0x01:
-        printf("%u\n", registers[i1].value());
-        break;
-    case 0x02:
-        //printf("set\n");
+    case 0x02: // set
         registers[i1].value(i2);
         break;
-    case 0x03:
-        //printf("copy\n");
+    case 0x03: // copy
         registers[i1].program_set_value(
             registers[i2].value()
         );
         break;
-    case 0x04:
-        //printf("savevv\n");
+    case 0x04: //savevv
         memory[i1] = i2;
         break;
-    case 0x05:
-        //printf("savevr\n");
+    case 0x05: // savevr
         memory[i1] = registers[i2].value();
         break;
-    case 0x06:
-        //printf("saverv\n");
+    case 0x06: // saverv
         memory[registers[i1].value()] = i2;
         break;
-    case 0x07:
-        //printf("saverr\n");
+    case 0x07: // saverr
         memory[registers[i1].value()] = registers[i2].value();
         break;
-    case 0x08:
-        //printf("loadv\n");
+    case 0x08: // loadv
         registers[i1].program_set_value(i2);
         break;
-    case 0x09:
-        //printf("loadr\n");
+    case 0x09: // loadr
         registers[i1].program_set_value(registers[i2].value());
         break;
-    case 0x0C:
-        //printf("gotov\n");
+    case 0x0A: // in
+        registers[i3].value(fgetc(stdin));
+        break;
+    case 0x0B: // out
+        fputc(registers[i3].value(), stdout);
+        fflush(stdout);
+        break;
+    case 0x0C: // gotov
         registers[rpc].value(i1);
         next_cflags |= 0x01;
         break;
-    case 0x0D:
-        //printf("gotor\n");
+    case 0x0D: // gotor
         registers[rpc].value(registers[i1].value());
         next_cflags |= 0x01;
         break;
-    case 0x0E:
-        //printf("ifv\n");
+    case 0x0E: // ifv
         if(registers[i1].value()) {
             registers[rpc].value(i2);
             next_cflags |= 0x01;
         }
         break;
-    case 0x0F:
-        //printf("ifr\n");
+    case 0x0F: // ifr
         if(registers[i1].value() != 0) {
             registers[rpc].value(registers[i2].value());
             next_cflags |= 0x01;
@@ -273,7 +266,7 @@ void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
         ));
         break;
     case 0xFF:
-        printf("halt\n");
+        fprintf(stderr, "halt\n");
         running = 0;
         break;
     //default:

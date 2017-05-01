@@ -1,0 +1,25 @@
+georgios;assembly;;
+gotov @BEGIN
+
+STRING0: "GEORGIOS"
+
+PRINT:
+// Arg: %0 is the return point
+// Arg: %1 is the location of string
+// Arg: %2 is the the length of the string / current iteration
+// %3 is the current memory address
+loadr %2 %1
+
+__PRINT_LOOP:
+subrv %2 %2 1
+
+ifv %2 @__PRINT_LOOP
+
+BEGIN:
+
+set %0 @END
+set %1 @STRING0
+set %2 0
+gotov @PRINT
+
+END:

@@ -13,11 +13,16 @@ LABEL_RE = re.compile(
     r'^(\w+)\:'
 )
 
+STRING_RE = re.compile(
+    r'\".*\"'
+)
+
 NUMBER_OF_ARGUMENTS = 3
 
 LABEL_SYMBOL = '@'
-
+HEX_SYMBOL = '#'
 REGISTER_SYMBOL = "%"
+
 REGISTERS = [
     "cflags",
     "pc",
@@ -42,6 +47,9 @@ OPS = {
     "saverr": 0x07,
     "loadv": 0x08,
     "loadr": 0x09,
+
+    "in": 0x0a,
+    "out": 0x0b,
 
     "gotov": 0x0c,
     "gotor": 0x0d,

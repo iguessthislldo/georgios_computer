@@ -1,0 +1,13 @@
+Input and Output is handled by the in and out instuction groups
+
+The format is:
+
+`DEVICE SELECTION SOURCE/DESTINATION`
+
+All the arguments are registers for the time being.
+
+For the VM, the all devices at the moment are the C Standard Streams
+
+`in 0 0 %0` reads the content of stdin to general register 0
+
+`out 0 0 %0` writes the content of general register 0 to stdout

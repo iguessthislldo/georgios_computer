@@ -6,9 +6,17 @@ set %0 0
 // Loop
 LOOP:
 
-// Add 1 to %0, Display it
+// Add 1 to %0
 addv %0 %0 1
-output  %0
+
+// Convert to ASCII, display it
+//addv %1 %0 30
+set %1 4e
+out 0 0 %1
+
+// Display newline
+set %1 0a
+out 0 0 %1
 
 // Goto LOOP if %0 < a (10 in hex)
 ltv %1 %0 a
