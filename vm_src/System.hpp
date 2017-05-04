@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <unistd.h>
-
 #include "Registers.hpp"
 
 #define MAGIC_NUMBER "georgios;binary;;\n"
@@ -19,14 +17,13 @@ public:
 
     // Status
     bool running = true;
-    uint32_t cycle = 0;
+    bool verbose;
 
     // Special Registers indices
     unsigned
         rcflags, rpc, ri0, ri1, ri2, ri3,
         raop, raflags, rahi, rmem;
         
-
     const word_t INCREMENT_PC = 0x01;
 
     // Registers
@@ -35,15 +32,12 @@ public:
     size_t memory_size;
     word_t * memory;
 
-    System(const string & path, size_t memory_size) {
+    System(const string & path, size_t memory_size, bool verbose) {
+        this->verbose = verbose;
+
         // Registers
         rcflags = registers.add_ro_reg("cflags");
         rpc = registers.add_ro_reg("pc");
-        ri0 = registers.add_ro_reg("i0");
-        ri1 = registers.add_ro_reg("i1");
-        ri2 = registers.add_ro_reg("i2");
-        ri3 = registers.add_ro_reg("i3");
-        raop = registers.add_ro_reg("aop");
         raflags = registers.add_ro_reg("aflags");
         rahi = registers.add_ro_reg("ahi");
         rmem = registers.add_ro_reg("mem");
@@ -64,28 +58,13 @@ public:
     void execute(word_t i0, word_t i1, word_t i2, word_t i3);
 
     int run() {
-        //printf("= Start ===========\n");
+	word_t pc;
         while (running) {
-            //printf("--------- Cycle: %u\n", cycle);
-
-            word_t pc = registers[rpc].value();
-            //printf("PC: %u\n", pc);
-
-            word_t i0 = registers[ri0].value(memory[4 * pc]);
-            word_t i1 = registers[ri1].value(memory[4 * pc + 1]);
-            word_t i2 = registers[ri2].value(memory[4 * pc + 2]);
-            word_t i3 = registers[ri3].value(memory[4 * pc + 3]);
-
-            //printf("- Execute ------\n");
-            execute(i0, i1, i2, i3);
-
-            if (!(registers[rcflags].value() & INCREMENT_PC))
-                registers[rpc].value(pc + 1);
-
-            cycle++;
-            //sleep(1);
+            pc = registers[rpc].value();
+            execute(memory[pc], memory[pc + 1], memory[pc + 2], memory[pc + 3]);
+            registers[rpc].value(pc + 4);
+            getchar();
         }
-        //printf("= End =============\n");
     }
 
     ~System() {

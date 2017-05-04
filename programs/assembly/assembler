@@ -1,25 +1,31 @@
 georgios;assembly;;
 gotov @BEGIN
 
-STRING0: "GEORGIOS"
+:STRING "GEORGIOS"
 
-PRINT:
-// Arg: %0 is the return point
+:PRINT
+// Arg: %0 is the return address
 // Arg: %1 is the location of string
-// Arg: %2 is the the length of the string / current iteration
-// %3 is the current memory address
-loadr %2 %1
+    loadr %2 %1
+    ifv %2 @PRINT_NOT_NULL
+    gotor %0
+:PRINT_NOT_NULL
+    addr %3 %1 %2
+:PRINT_LOOP
+    subr %4 %3 %2
+    ifv %4 @PRINT_CONTINUE
+    gotor %0
+:CONTINUE
+    addv %2 %2 1
+    loadr %4 %2
+    out 0 0 %4
+    gotov @PRINT_LOOP
 
-__PRINT_LOOP:
-subrv %2 %2 1
-
-ifv %2 @__PRINT_LOOP
-
-BEGIN:
+:BEGIN
 
 set %0 @END
 set %1 @STRING0
 set %2 0
 gotov @PRINT
 
-END:
+:END
