@@ -9,85 +9,119 @@
 
 void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
     word_t next_cflags = 0x00;
-    fprintf(stderr,
-        "Execute %u, %u, %u, %u\n", i0, i1, i2, i3
+    if (verbose) fprintf(stderr,
+        "Execute %x, %x, %x, %x\n", i0, i1, i2, i3
     );
     switch (i0) {
     case 0x00: // nop
+        if (verbose)
+            fprintf(stderr, "    nop\n");
         break;
     case 0x02: // set
+        if (verbose)
+            fprintf(stderr, "    set\n");
         registers[i1].value(i2);
         break;
     case 0x03: // copy
+        if (verbose)
+            fprintf(stderr, "    copy\n");
         registers[i1].program_set_value(
             registers[i2].value()
         );
         break;
     case 0x04: //savevv
+        if (verbose)
+            fprintf(stderr, "    savevv\n");
         memory[i1] = i2;
         break;
     case 0x05: // savevr
+        if (verbose)
+            fprintf(stderr, "    savevr\n");
         memory[i1] = registers[i2].value();
         break;
     case 0x06: // saverv
+        if (verbose)
+            fprintf(stderr, "    saverv\n");
         memory[registers[i1].value()] = i2;
         break;
     case 0x07: // saverr
+        if (verbose)
+            fprintf(stderr, "    saverr\n");
         memory[registers[i1].value()] = registers[i2].value();
         break;
     case 0x08: // loadv
+        if (verbose)
+            fprintf(stderr, "    loadv\n");
         registers[i1].program_set_value(i2);
         break;
     case 0x09: // loadr
+        if (verbose)
+            fprintf(stderr, "    loadr\n");
         registers[i1].program_set_value(registers[i2].value());
         break;
     case 0x0A: // in
+        if (verbose)
+            fprintf(stderr, "    in\n");
         registers[i3].value(fgetc(stdin));
         break;
     case 0x0B: // out
+        if (verbose)
+            fprintf(stderr, "    out\n");
         fputc(registers[i3].value(), stdout);
         fflush(stdout);
         break;
     case 0x0C: // gotov
+        if (verbose)
+            fprintf(stderr, "    gotov\n");
         registers[rpc].value(i1);
         next_cflags |= 0x01;
         break;
     case 0x0D: // gotor
+        if (verbose)
+            fprintf(stderr, "    gotor\n");
         registers[rpc].value(registers[i1].value());
         next_cflags |= 0x01;
         break;
     case 0x0E: // ifv
+        if (verbose)
+            fprintf(stderr, "    ifv\n");
         if(registers[i1].value()) {
             registers[rpc].value(i2);
             next_cflags |= 0x01;
         }
         break;
     case 0x0F: // ifr
+        if (verbose)
+            fprintf(stderr, "    ifr\n");
         if(registers[i1].value() != 0) {
             registers[rpc].value(registers[i2].value());
             next_cflags |= 0x01;
         }
         break;
-    case 0x20:
-        //printf("addv\n");
+    case 0x20: // addv
+        if (verbose)
+            fprintf(stderr, "    addv\n");
         registers[i1].value(
             registers[i2].value() + i3
         );
         break;
-    case 0x21:
-        //printf("addr\n");
+    case 0x21: // addr
+        if (verbose)
+            fprintf(stderr, "    addr\n");
         registers[i1].value(
             registers[i2].value() + registers[i3].value()
         );
         break;
     case 0x22:
-        //printf("subv\n");
+        if (verbose)
+            fprintf(stderr, "    subv\n");
         registers[i1].value(
             registers[i2].value() - i3
         );
         break;
     case 0x23:
-        //printf("subr\n");
+        if (verbose)
+            fprintf(stderr, "    subr\n");
         registers[i1].value(
             registers[i2].value() - registers[i3].value()
         );
@@ -266,7 +300,7 @@ void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
         ));
         break;
     case 0xFF:
-        fprintf(stderr, "halt\n");
+        if (verbose) fprintf(stderr, "halt\n");
         running = 0;
         break;
     //default:

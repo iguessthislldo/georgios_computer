@@ -14,7 +14,7 @@ LABEL_RE = re.compile(
 )
 
 STRING_RE = re.compile(
-    r'\".*\"'
+    r'\"(.*)\"'
 )
 
 NUMBER_OF_ARGUMENTS = 3
@@ -86,7 +86,6 @@ def convert(line):
     correct sized list
     '''
     parts = line.split()
-    instruction = [OPS[parts[0]]]
 
     label_inserts = {}
 
@@ -100,7 +99,12 @@ def convert(line):
             else:
                 label_inserts[label] = [i]
             parts[i] = '0'
+        else:
+            m = STRING_RE.match(p)
+            if m:
+                print('STRING:', m.groups(0)[0])
 
+    instruction = [OPS[parts[0]]]
     arguments = [i for i in parts[1:]]
     for i in range(0, NUMBER_OF_ARGUMENTS):
         if i < len(arguments):
@@ -138,7 +142,7 @@ def main(source, binary, verbose):
 
         m = LABEL_RE.search(treated_line)
         if m:
-            labels[m.groups()[0]] = len(image) // (NUMBER_OF_ARGUMENTS + 1)
+            labels[m.groups()[0]] = len(image)
             treated_line = treated_line[m.end():].lstrip()
             if not treated_line:
                 continue
