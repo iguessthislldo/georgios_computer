@@ -8,297 +8,263 @@
  */
 
 void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
+    // Extract OP Code
+    word_t op = i0 >> 2;
+    // Extract Arugument Indirection
+    word_t first = i0 & 2;
+    word_t second = i0 & 1;
+
+    word_t b, c;
+    if (first) {
+        b = registers[i2].value();
+    } else {
+        b = i2;
+    }
+    if (second) {
+        c = registers[i3].value();
+    } else {
+        c = i3;
+    }
+
     word_t next_cflags = 0x00;
-    if (verbose) fprintf(stderr,
-        "Execute %x, %x, %x, %x\n", i0, i1, i2, i3
-    );
-    switch (i0) {
-    case 0x00: // nop
+    if (verbose) {
+        fprintf(stderr, "Execute %x, %x, %x, %x\n", i0, i1, i2, i3);
+        if (first) fprintf(stderr, "    First ambiguous argument is a register\n");
+        else fprintf(stderr, "    First ambiguous argument is a value\n");
+        if (second) fprintf(stderr, "    Second ambiguous argument is a register\n");
+        else fprintf(stderr, "    Second ambiguous argument is a value\n");
+    }
+//dec|hex|bin    |name |ALU OP|DESCRIPTION                          |ARGUMENTS      |
+    word_t value;
+    switch (op) {
+//00 |00 |000000 |nop  |      |Do nothing                           |_ _ _ 00 0 000 |
+    case 0x00:
         if (verbose)
             fprintf(stderr, "    nop\n");
         break;
-    case 0x02: // set
+//01 |01 |000001 |=    |      |Set %A to B                          |R I _ 10 1 100 |
+    case 0x01: // = (set)
         if (verbose)
-            fprintf(stderr, "    set\n");
-        registers[i1].value(i2);
+            fprintf(stderr, "    =\n");
+        if (first)
+            registers[i1].program_set_value(
+                registers[i2].value()
+            );
+        else
+            registers[i1].value(i2);
         break;
-    case 0x03: // copy
+//02 |02 |000010 |save |      |Set memory at A to B                 |I I _ 10 0 000 |
+    case 0x02:
         if (verbose)
-            fprintf(stderr, "    copy\n");
+            fprintf(stderr, "    save\n");
+        value = second ? registers[i2].value() : i2;
+        if (first) {
+            memory[registers[i1].value()] = value;
+        } else {
+            memory[i1] = value;
+        }
+        break;
+//03 |03 |000011 |load |      |Set %A to memory at B                |R I _ 10 1 100 |
+    case 0x03:
+        if (verbose)
+            fprintf(stderr, "    load\n");
         registers[i1].program_set_value(
-            registers[i2].value()
+            first ? registers[i2].value() : i2
         );
         break;
-    case 0x04: //savevv
+//04 |04 |000100 |if   |      |If %A go to B                        |R I _ 10 1 100 |
+    case 0x04:
         if (verbose)
-            fprintf(stderr, "    savevv\n");
-        memory[i1] = i2;
+            fprintf(stderr, "    if\n");
+        if(registers[i1].value()) {
+            registers[rpc].value(first ? registers[i2].value() : i2);
+            next_cflags |= INCREMENT_PC;
+        }
         break;
-    case 0x05: // savevr
+//05 |05 |000101 |goto |      |Jump to A                            |I _ _ 01 0 000 |
+    case 0x05:
         if (verbose)
-            fprintf(stderr, "    savevr\n");
-        memory[i1] = registers[i2].value();
+            fprintf(stderr, "    goto\n");
+        registers[rpc].value(first ? registers[i1].value() : i1);
+        next_cflags |= INCREMENT_PC;
         break;
-    case 0x06: // saverv
+//06 |06 |000110 |if!  |      |If not %A go to B                    |R I _ 10 1 100 |
+    case 0x06:
         if (verbose)
-            fprintf(stderr, "    saverv\n");
-        memory[registers[i1].value()] = i2;
+            fprintf(stderr, "    if!\n");
+        if(!registers[i1].value()) {
+            registers[rpc].value(first ? registers[i2].value() : i2);
+            next_cflags |= INCREMENT_PC;
+        }
         break;
-    case 0x07: // saverr
-        if (verbose)
-            fprintf(stderr, "    saverr\n");
-        memory[registers[i1].value()] = registers[i2].value();
-        break;
-    case 0x08: // loadv
-        if (verbose)
-            fprintf(stderr, "    loadv\n");
-        registers[i1].program_set_value(i2);
-        break;
-    case 0x09: // loadr
-        if (verbose)
-            fprintf(stderr, "    loadr\n");
-        registers[i1].program_set_value(registers[i2].value());
-        break;
-    case 0x0A: // in
+//08 |08 |001000 |in   |      |Read Input(%B, %C) to %A             |R R R 11 0 111 |
+    case 0x08:
         if (verbose)
             fprintf(stderr, "    in\n");
         registers[i3].value(fgetc(stdin));
         break;
-    case 0x0B: // out
-        if (verbose)
+//09 |09 |001001 |out  |      |Write A to Output(%B, %C)            |I R R 11 0 011 |
             fprintf(stderr, "    out\n");
-        fputc(registers[i3].value(), stdout);
+        fputc(first ? registers[i3].value() : i3, stdout);
         fflush(stdout);
         break;
-    case 0x0C: // gotov
+//32 |20 |100000 |+    |00000 |Set %A to B add C                    |R I I 11 1 100 |
+    case 0x20:
         if (verbose)
-            fprintf(stderr, "    gotov\n");
-        registers[rpc].value(i1);
-        next_cflags |= 0x01;
+            fprintf(stderr, "    +\n");
+        registers[i1].value(b + c);
         break;
-    case 0x0D: // gotor
+//33 |21 |100001 |-    |00001 |Set %A to B subtract C               |R I I 11 1 100 |
+    case 0x21:
         if (verbose)
-            fprintf(stderr, "    gotor\n");
-        registers[rpc].value(registers[i1].value());
-        next_cflags |= 0x01;
+            fprintf(stderr, "    -\n");
+        registers[i1].value(b - c);
         break;
-    case 0x0E: // ifv
-        if (verbose)
-            fprintf(stderr, "    ifv\n");
-        if(registers[i1].value()) {
-            registers[rpc].value(i2);
-            next_cflags |= 0x01;
-        }
-        break;
-    case 0x0F: // ifr
-        if (verbose)
-            fprintf(stderr, "    ifr\n");
-        if(registers[i1].value() != 0) {
-            registers[rpc].value(registers[i2].value());
-            next_cflags |= 0x01;
-        }
-        break;
-    case 0x20: // addv
-        if (verbose)
-            fprintf(stderr, "    addv\n");
-        registers[i1].value(
-            registers[i2].value() + i3
-        );
-        break;
-    case 0x21: // addr
-        if (verbose)
-            fprintf(stderr, "    addr\n");
-        registers[i1].value(
-            registers[i2].value() + registers[i3].value()
-        );
-        break;
+//34 |22 |100010 |++   |00010 |Increment %A                         |R _ _ 01 0 100 |
     case 0x22:
         if (verbose)
-            fprintf(stderr, "    subv\n");
+            fprintf(stderr, "    ++\n");
         registers[i1].value(
-            registers[i2].value() - i3
+            registers[i1].value() + 1
         );
         break;
+//35 |23 |100011 |--   |00011 |Decrement %A                         |R _ _ 01 0 100 |
     case 0x23:
         if (verbose)
-            fprintf(stderr, "    subr\n");
+            fprintf(stderr, "    --\n");
         registers[i1].value(
-            registers[i2].value() - registers[i3].value()
+            registers[i1].value() - 1
         );
         break;
+//36 |24 |100100 |*u   |00100 |Set %A to unsigned mult. of B and C  |R I I 11 1 100 |
     case 0x24:
-        //printf("andv\n");
-        registers[i1].value(
-            registers[i2].value() && i3
-        );
+        if (verbose)
+            fprintf(stderr, "    *u\n");
+        registers[i1].value(b * c);
         break;
+//37 |25 |100101 |/u   |00101 |Set %A to unsigned div. of B and C   |R I I 11 1 100 |
     case 0x25:
-        //printf("andr\n");
-        registers[i1].value(
-            registers[i2].value() && registers[i3].value()
-        );
+        if (verbose)
+            fprintf(stderr, "    /u\n");
+        registers[i1].value(b / c);
         break;
+//38 |26 |100110 |*s   |00110 |Set %A to signed mult. of B and C    |R I I 11 1 100 |
     case 0x26:
-        //printf("orv\n");
+        if (verbose)
+            fprintf(stderr, "    *s\n");
         registers[i1].value(
-            registers[i2].value() || i3
-        );
-        break;
-    case 0x27:
-        //printf("orr\n");
-        registers[i1].value(
-            registers[i2].value() || registers[i3].value()
-        );
-        break;
-    case 0x2C:
-        //printf("eqv\n");
-        registers[i1].value(
-            registers[i2].value() == i3
-        );
-        break;
-    case 0x2D:
-        //printf("eqr\n");
-        registers[i1].value(
-            registers[i2].value() == registers[i3].value()
-        );
-        break;
-    case 0x2E:
-        //printf("nev\n");
-        registers[i1].value(
-            registers[i2].value() != i3
-        );
-        break;
-    case 0x2F:
-        //printf("ner\n");
-        registers[i1].value(
-            registers[i2].value() != registers[i3].value()
-        );
-        break;
-    case 0x30:
-        //printf("gtv\n");
-        registers[i1].value(
-            registers[i2].value() > i3
-        );
-        break;
-    case 0x31:
-        //printf("gtr\n");
-        registers[i1].value(
-            registers[i2].value() > registers[i3].value()
-        );
-        break;
-    case 0x32:
-        //printf("gev\n");
-        registers[i1].value(
-            registers[i2].value() >= i3
-        );
-        break;
-    case 0x33:
-        //printf("ger\n");
-        registers[i1].value(
-            registers[i2].value() >= registers[i3].value()
-        );
-        break;
-    case 0x34:
-        //printf("ltv\n");
-        registers[i1].value(
-            registers[i2].value() < i3
-        );
-        break;
-    case 0x35:
-        //printf("ltr\n");
-        registers[i1].value(
-            registers[i2].value() < registers[i3].value()
-        );
-        break;
-    case 0x36:
-        //printf("lev\n");
-        registers[i1].value(
-            registers[i2].value() <= i3
-        );
-        break;
-    case 0x37:
-        //printf("ler\n");
-        registers[i1].value(
-            registers[i2].value() <= registers[i3].value()
-        );
-        break;
-    case 0x3A:
-        //printf("andbv\n");
-        registers[i1].value(
-            registers[i2].value() & i3
-        );
-        break;
-    case 0x3B:
-        //printf("andbr\n");
-        registers[i1].value(
-            registers[i2].value() & registers[i3].value()
-        );
-        break;
-    case 0x3C:
-        //printf("orbv\n");
-        registers[i1].value(
-            registers[i2].value() | i3
-        );
-        break;
-    case 0x3D:
-        //printf("orbr\n");
-        registers[i1].value(
-            registers[i2].value() | registers[i3].value()
-        );
-        break;
-    case 0x3E:
-        //printf("xorbv\n");
-        registers[i1].value(
-            registers[i2].value() ^ i3
-        );
-        break;
-    case 0x3F:
-        //printf("xorbr\n");
-        registers[i1].value(
-            registers[i2].value() ^ registers[i3].value()
-        );
-        break;
-    case 0x40:
-        //printf("comp\n");
-        registers[i1].value(
-            ~registers[i2].value()
-        );
-        break;
-    case 0x42:
-        //printf("not\n");
-        registers[i1].value(
-            !registers[i2].value()
-        );
-        break;
-    // TODO: HI / Low results
-    case 0x43:
-        //printf("mulu\n");
-        registers[i1].value(
-            registers[i2].value() * registers[i3].value()
-        );
-        break;
-    case 0x44:
-        //printf("mulu\n");
-        registers[i1].value(
-            registers[i2].value() / registers[i3].value()
-        );
-        break;
-    case 0x45:
-        //printf("muls\n");
-        registers[i1].value(static_cast<word_t>(
-            static_cast<signed_word_t>(registers[i2].value())
+            static_cast<signed_word_t>(b)
             *
-            static_cast<signed_word_t>(registers[i3].value())
-        ));
+            static_cast<signed_word_t>(c)
+        );
         break;
-    case 0x46:
-        //printf("divs\n");
-        registers[i1].value(static_cast<word_t>(
-            static_cast<signed_word_t>(registers[i2].value())
+//39 |27 |100111 |/s   |00111 |Set %A to signed div. of B and C     |R I I 11 1 100 |
+    case 0x27:
+        if (verbose)
+            fprintf(stderr, "    /s\n");
+        registers[i1].value(
+            static_cast<signed_word_t>(b)
             /
-            static_cast<signed_word_t>(registers[i3].value())
-        ));
+            static_cast<signed_word_t>(c)
+        );
         break;
+//40 |28 |101000 |&&   |01000 |Set %A to B logical and C            |R I I 11 1 100 |
+    case 0x28:
+        if (verbose)
+            fprintf(stderr, "    &&\n");
+        registers[i1].value(b && c);
+        break;
+//41 |29 |101001 |||   |01001 |Set %A to B logical or C             |R I I 11 1 100 |
+    case 0x29:
+        if (verbose)
+            fprintf(stderr, "    ||\n");
+        registers[i1].value(b || c);
+        break;
+//42 |2A |101010 |<<   |01010 |Set %A to B logical shift left C     |R I I 11 1 100 |
+    case 0x2A:
+        if (verbose)
+            fprintf(stderr, "    <<\n");
+        registers[i1].value(b << c);
+        break;
+//43 |2B |101011 |>>   |01011 |Set %A to B logical shift right C    |R I I 11 1 100 |
+    case 0x2B:
+        if (verbose)
+            fprintf(stderr, "    >>\n");
+        registers[i1].value(b >> c);
+        break;
+//44 |2C |101100 |>>>  |01100 |Set %A to B arithmatic shift right C |R I I 11 1 100 |
+    case 0x2C:
+        if (verbose)
+            fprintf(stderr, "    >>>\n");
+        fprintf(stderr, "ARITHMATIC SHIFT RIGHT NOT IMPLEMENTED\n");
+        break;
+//45 |2D |101101 |&    |01101 |Set %A to B bitwise and C            |R I I 11 1 100 |
+    case 0x2D:
+        if (verbose)
+            fprintf(stderr, "    &\n");
+        registers[i1].value(b & c);
+        break;
+//46 |2E |101110 ||    |01110 |Set %A to B bitwise or C             |R I I 11 1 100 |
+    case 0x2E:
+        if (verbose)
+            fprintf(stderr, "    |\n");
+        registers[i1].value(b | c);
+        break;
+//47 |2F |101111 |^    |01111 |Set %A to B bitwise xor C            |R I I 11 1 100 |
+    case 0x2F:
+        if (verbose)
+            fprintf(stderr, "    ^\n");
+        registers[i1].value(b ^ c);
+        break;
+//48 |30 |110000 |==   |10000 |Set %A to B equals C                 |R I I 11 1 100 |
+    case 0x30:
+        if (verbose)
+            fprintf(stderr, "    ==\n");
+        registers[i1].value(b == c);
+        break;
+//49 |31 |110001 |!=   |10001 |Set %A to B not equals C             |R I I 11 1 100 |
+    case 0x31:
+        if (verbose)
+            fprintf(stderr, "    !=\n");
+        registers[i1].value(b != c);
+        break;
+//50 |32 |110010 |>    |10010 |Set %A to B greater than C           |R I I 11 1 100 |
+    case 0x32:
+        if (verbose)
+            fprintf(stderr, "    >\n");
+        registers[i1].value(b > c);
+        break;
+//51 |33 |110011 |>=   |10011 |Set %A to B greater than equal to C  |R I I 11 1 100 |
+    case 0x33:
+        if (verbose)
+            fprintf(stderr, "    >=\n");
+        registers[i1].value(b >= c);
+        break;
+//52 |34 |110110 |<    |10110 |Set %A to B less than C              |R I I 11 1 100 |
+    case 0x34:
+        if (verbose)
+            fprintf(stderr, "    <\n");
+        registers[i1].value(b < c);
+        break;
+//53 |35 |110111 |<=   |10111 |Set %A to B less than equal to C     |R I I 11 1 100 |
+    case 0x35:
+        if (verbose)
+            fprintf(stderr, "    <=\n");
+        registers[i1].value(b <= c);
+        break;
+//54 |36 |111000 |~    |11000 |Set %A to bitwise not B              |R I _ 10 1 100 |
+    case 0x36:
+        if (verbose)
+            fprintf(stderr, "    ~\n");
+        registers[i1].value(~(first ? registers[i2].value() : i2));
+        break;
+//55 |37 |111001 |!    |11001 |Set %A to logical not B              |R I _ 10 1 100 |
+    case 0x37:
+        if (verbose)
+            fprintf(stderr, "    !\n");
+        registers[i1].value(!(first ? registers[i2].value() : i2));
+        break;
+//63 |3F |111111 |halt |      |Halt the computer                    |_ _ _ 00 0 000 |
     case 0xFF:
         if (verbose) fprintf(stderr, "halt\n");
         running = 0;

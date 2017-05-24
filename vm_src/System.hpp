@@ -21,8 +21,7 @@ public:
 
     // Special Registers indices
     unsigned
-        rcflags, rpc, ri0, ri1, ri2, ri3,
-        raop, raflags, rahi, rmem;
+        rcflags, rpc, raflags, rahi, rmem;
         
     const word_t INCREMENT_PC = 0x01;
 
@@ -93,6 +92,8 @@ public:
         fclose(file);
         return i;
     }
+private:
+    void rii(bool first, bool second, word_t * b, word_t * c);
 };
 
 #endif

@@ -1,5 +1,50 @@
+import sys
 from pathlib import Path
 from argparse import ArgumentParser
+
+class Memory:
+    def __init__(self, size):
+        self.size = size
+        self.data = [None] * size
+        self.edge = 0
+        self.labels = {}
+
+    def add_value(self, value):
+        self.data[self.edge] = value
+        self.edge += 1
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self.data[key]
+        elif isinstance(key, str):
+            return self.labels[key]
+        raise TypeError('Key must be int or str')
+
+    def __setitem__(self, key, value):
+        if isinstance(key, int):
+            if key >= self.size:
+                raise IndexError
+            self.data[key] = value
+        elif isinstance(key, str):
+            self.labels[key] = self.edge
+            if isinstance(value, str):
+                l = len(value)
+                self.add_value(l)
+                for i in range(0, l):
+                    self.add_value(value[i])
+            elif isinstance(value, list):
+                l = len(value)
+                self.add_value(l)
+                for i in range(0, l):
+                    self[key] = value[i]
+            elif isinstance(value, tuple):
+                l = len(value)
+                for i in range(0, l):
+                    self[key] = value[i]
+            else:
+                self.add_value(value)
+
+m = Memory(1024)
 
 # Parse arguments
 parser = ArgumentParser()
@@ -16,60 +61,62 @@ verbose = args.verbose
 stream = source.read_text()
 stream_legnth = len(stream)
 
-# Build Applicaiton Data
-appdata = []
-
 # Magic Numbers
-ASSEMBLY_MAGIC_NUMBER = "georgios;assembly;;\n",
-BINARY_MAGIC_NUMBER = "georgios;binary;;\n",
+m['ASSEMBLY_MAGIC_NUMBER'] = "georgios;assembly;;\n"
+m['BINARY_MAGIC_NUMBER'] = "georgios;binary;;\n"
 
 # Registers
-SPECIAL_REGISTERS = [
+m['SPECIAL_REGISTERS'] = [
     "cflags",
     "pc",
     "aflags",
     "ahi",
-    "amem",
+    "mem",
 ]
-TOTAL_NO_REGISTERS = 16
-NO_GENRAL_REGISTERS = TOTAL_NO_REGISTERS - len(SPECIAL_REGISTERS)
+m['TOTAL_NO_REGISTERS'] = 16
+m['NO_GENRAL_REGISTERS'] = m['TOTAL_NO_REGISTERS'] - m['SPECIAL_REGISTERS']
 
 # OPS
-OPS = [
-    "nop", 0x00,
-
-    "set", 0x02,
-    "copy", 0x03,
-
-    "savevv", 0x04,
-    "savevr", 0x05,
-    "saverv", 0x06,
-    "saverr", 0x07,
-    "loadv", 0x08,
-    "loadr", 0x09,
-
-    "in", 0x0a,
-    "out", 0x0b,
-
-    "gotov", 0x0c,
-    "gotor", 0x0d,
-    "ifv", 0x0e,
-    "ifr", 0x0f,
-
-    "addr", 0x20,
-    "addv", 0x21,
-    "subr", 0x22,
-    "subv", 0x23,
-
-    "ltv", 0x34,
-
-    "halt", 0xff,
+m['OPS'] = [
+    ("nop", 0x00, 0, 0, 0),
+    ("=:", 0x01, 2, 1, 4),
+    ("save", 0x02, 2, 0, 0),
+    ("load", 0x03, 2, 1, 4),
+    ("if", 0x04, 2, 1, 4),
+    ("goto", 0x05, 1, 0, 0),
+    ("if!", 0x06, 2, 1, 4),
+    ("in", 0x08, 3, 0, 7),
+    ("out", 0x09, 3, 0, 3),
+    ("+", 0x20, 3, 1, 4),
+    ("-", 0x21, 3, 1, 4),
+    ("++", 0x22, 1, 0, 4),
+    ("--", 0x23, 1, 0, 4),
+    ("*u", 0x24, 3, 1, 4),
+    ("/u", 0x25, 3, 1, 4),
+    ("*s", 0x26, 3, 1, 4),
+    ("/s", 0x27, 3, 1, 4),
+    ("&&", 0x28, 3, 1, 4),
+    ("||", 0x29, 3, 1, 4),
+    ("<<", 0x2A, 3, 1, 4),
+    (">>", 0x2B, 3, 1, 4),
+    (">>>", 0x2C, 3, 1, 4),
+    ("&", 0x2D, 3, 1, 4),
+    ("|", 0x2E, 3, 1, 4),
+    ("^", 0x2F, 3, 1, 4),
+    ("==", 0x30, 3, 1, 4),
+    ("!=", 0x31, 3, 1, 4),
+    (">", 0x32, 3, 1, 4),
+    (">=", 0x33, 3, 1, 4),
+    ("<", 0x34, 3, 1, 4),
+    ("<=", 0x35, 3, 1, 4),
+    ("~", 0x36, 2, 0, 4),
+    ("!", 0x37, 2, 0, 4),
+    ("halt", 0x3f, 0, 0, 0),
 ]
 
-
 # Constants
-MAX_WORD_SIZE = 32
-MAX_ARGUMENTS = 3
+m['MAX_WORD_SIZE'] = 32
+m['MAX_ARGUMENTS'] = 3
 
 # States
 STATE_NEW_WORD = 0
@@ -92,9 +139,14 @@ STATE_IGNORE_TO_END_LINE = 15
 state = STATE_NEW_WORD
 
 # Current Word
-word_size = 0
-word = ''
-add_to_word = False
+m['word'] = [ None ] * m[m['MAX_WORD_SIZE']]
+m[m['word']] = 0
+m['add_to_word'] = False
+
+# Array Building List
+m['array_list_size'] = 0
+m['array_list_head'] = 0
+m['array_list_current'] = 0
 
 # Current Array
 array_start = 0
@@ -104,19 +156,21 @@ character = 0
 escape = False
 
 # Current Instruction
-instruction = False
-arguments = 0
-fill = 0
+m['instruction'] = False
+m['arguments'] = 0
 
 # Product
-image_size = 0
-image = []
+m['image_size'] = 0
+m['image'] = 0
+
+print(m.data)
+sys.exit(0)
 
 # Main Loop
 c = 1
 running = True
 stream_index = 20
-while running:
+while True:
     if stream_index < stream_legnth:
         c = stream[stream_index]
         stream_index += 1
@@ -164,8 +218,8 @@ while running:
             continue
         elif c == '"' and not instruction: # Begin String
             state = STATE_STRING
-            array_start = image_size
-            array_size = 0
+            array_list_head = m.allocate(2)
+            array_list_size = 0
             image.append(0)
             continue
         elif c == '\'' and not instruction: # Begin Character
@@ -367,6 +421,8 @@ while running:
         word_size += 1
         word += c
 
+    if not running:
+        break
 
 print('===============================================================================\n')
 

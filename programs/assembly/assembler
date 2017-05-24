@@ -1,31 +1,58 @@
 georgios;assembly;;
-gotov @BEGIN
+goto @BEGIN
 
-:STRING "GEORGIOS"
+// 0 New Word
+// 1 Value
+// 2 Hex Value
+// 3 Op
+// 13 End of Line
 
-:PRINT
-// Arg: %0 is the return address
-// Arg: %1 is the location of string
-    loadr %2 %1
-    ifv %2 @PRINT_NOT_NULL
-    gotor %0
-:PRINT_NOT_NULL
-    addr %3 %1 %2
-:PRINT_LOOP
-    subr %4 %3 %2
-    ifv %4 @PRINT_CONTINUE
-    gotor %0
-:PRINT_CONTINUE
-    addv %2 %2 1
-    loadr %4 %2
-    out 0 0 %4
-    gotov @PRINT_LOOP
+// %0 is state
+// %1 is the character
 
-:BEGIN
+STRING_NEWLINE:
+	"END OF LINE"
 
-set %0 @END
-set %1 @STRING0
-set %2 0
-gotov @PRINT
+PRINT:
+// Arg: %2 is the return address
+// Arg: %3 is the location of string
+// %4, %5, and, %6 are used
+    load %4 %3
+    if %4 @PRINT_NOT_NULL
+    goto %2
+PRINT_NOT_NULL:
+    + %5 %3 %4
+PRINT_LOOP:
+    - %6 %5 %4
+    if %6 @PRINT_CONTINUE
+    goto %2
+PRINT_CONTINUE:
+    ++ %4
+    load %6 %4
+    out %6
+    goto @PRINT_LOOP
 
-:END
+BEGIN:
+
+// Print
+= %2 @+3
+= %3 @STRING_END_OF_LINE
+goto @PRINT
+
+LOOP:
+// Take next charater
+in %1 %0 %0
+
+// if state is not STATE_NEW_WORD, go to WORD_STATES
+if %0 @WORD_STATES
+
+!= %2 %0 '\n'
+if %2 @
+== %2 %0 0
+
+WORD_STATES:
+
+goto @LOOP
+
+halt
+END:
