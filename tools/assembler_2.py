@@ -2,6 +2,14 @@ import sys
 from pathlib import Path
 from argparse import ArgumentParser
 
+def fixed(size, string):
+    '''Create fixed string for Memory class
+    '''
+    l = len(string)
+    if l > size:
+        sys.exit("String too big for fixed sized string")
+    return tuple([string] + ([ None ] * (size - l)))
+
 class Memory:
     def __init__(self, size):
         self.size = size
@@ -112,7 +120,7 @@ verbose = args.verbose
 stream = source.read_text()
 stream_legnth = len(stream)
 
-# Constants
+# Constants ==================================================================
 m['MAX_WORD_SIZE'] = 32
 m['MAX_ARGUMENTS'] = 3
 
@@ -131,16 +139,12 @@ m['SPECIAL_REGISTERS'] = [
 m['TOTAL_NO_REGISTERS'] = 16
 m['NO_GENRAL_REGISTERS'] = m['TOTAL_NO_REGISTERS'] - m['SPECIAL_REGISTERS']
 
-def fixed(size, string):
-    l = len(string)
-    if l > size:
-        sys.exit("String too big for fixed sized string")
-    return tuple([string] + ([ None ] * (size - l)))
-
 # OPS
 max_op_size = 5
 op_element_size = 1 + max_op_size + 4
 m['OPS'] = [
+# String Value, Op Code, Number of arguments, Indirection Offset,
+                                                    #Forced Register Mask
     (fixed(max_op_size, "nop"), 0x00, 0, 0, 0),
     (fixed(max_op_size, "="), 0x01, 2, 1, 4),
     (fixed(max_op_size, "save"), 0x02, 2, 0, 0),
@@ -176,9 +180,6 @@ m['OPS'] = [
     (fixed(max_op_size, "!"), 0x37, 2, 1, 4),
     (fixed(max_op_size, "halt"), 0x3f, 0, 0, 0),
 ]
-m['word_index'] = 0
-m['op_index'] = 0
-m['op_matched'] = False
 
 # States
 STATE_NEW_WORD = 0
@@ -198,14 +199,20 @@ STATE_END_LINE = 13
 STATE_COMMENT = 14
 STATE_IGNORE_TO_END_LINE = 15
 STATE_UNCERTAIN = 16
-STATE_MATCH_OP = 17
 
-state = STATE_NEW_WORD
+IMAGE_CHUNK_SIZE = 8 # includes metadata and content
+
+# Variables ==================================================================
+
+state = STATE_NEW_WORD # Should stay in registers
+
+# OP Seraching
+m['word_index'] = 0
+m['op_index'] = 0
+m['op_matched'] = False
 
 # Current Word
-word_size = m['MAX_WORD_SIZE'] + 1
-word_list = [ None ] * word_size
-m['word'] = word_list
+m['word'] = [ None ] * (m['MAX_WORD_SIZE'] + 1)
 m['word'] = 0
 m['add_to_word'] = False
 
@@ -215,21 +222,24 @@ m['array_list_head'] = 0
 m['array_list_current'] = 0
 
 # Current Array
-array_start = 0
-array_size = 0
-got_character = 0
-character = 0
-escape = False
+m['array_start'] = 0
+m['array_size'] = 0
+m['got_character'] = 0
+m['character'] = 0
+m['escape'] = False
 
 # Current Instruction
 m['instruction'] = False
 m['arguments'] = 0
 
 # Product
-m['image_size'] = 0
-m['image'] = 0
+m['add_to_image'] = False
+m['value_to_add_to_image'] = 0
+# Image list format is NEXT, PREV, SIZE, CONTENT
+m['image_head'] = 0
+m['image_tail'] = 0
 
-# Main Loop
+# Main Loop ==================================================================
 c = 1
 running = True
 stream_index = 20
@@ -259,13 +269,13 @@ while True:
             if m['instruction']:
                 m['arguments'] += 1
             continue
-        elif c == '#': # Direct Insert Value
+        elif c == '#': # Direct Insert Hex Value
             state = STATE_HEX_VALUE
             m['add_to_word'] = True
             if m['instruction']:
                 m['arguments'] += 1
             continue
-        elif c == '%' and m['instruction']:
+        elif c == '%' and m['instruction']: # Register
             state = STATE_REGISTER
             m['add_to_word'] = True
             if m['instruction']:
@@ -281,12 +291,13 @@ while True:
             state = STATE_CHARACTER
             character = 0
             continue
-        elif c == ';':
+        elif c == ';': # Comment
             state = STATE_IGNORE_TO_END_LINE
             continue
-        else:
+        else: # Uncertain if OP, label, or invalid character(s)
             state = STATE_UNCERTAIN
             m['add_to_word'] = True
+
 # Word States ================================================================
 
 # LABEL INSERT
@@ -356,9 +367,9 @@ while True:
 
 # STRING
     elif state == STATE_STRING:
-        if escape:
-            escape = False
-            array_size += 1
+        if m['escape']:
+            m['escape'] = False
+            m['array_size'] += 1
             if c == '\\':
                 image.append('\\')
             elif c == 'n':
@@ -369,42 +380,44 @@ while True:
                 print('Invalid escaped character in string: {}'.format(repr(c)))
                 break
         elif c == '\\':
-            escape = True
+            m['escape'] = True
         elif c == '"':
-            image[array_start] = array_size
-            print('STRING with', array_size, 'elements')
+            image[m['array_start']] = m['array_size']
+            print('STRING with', m['array_size'], 'elements')
             state = STATE_END_WORD
         else:
-            array_size += 1
+            m['array_size'] += 1
             image.append(c)
 
 # CHARACTER
     elif state == STATE_CHARACTER:
-        if got_character:
+        if m['got_character']:
             if c == '\'':
-                print('CHARACTER:', repr(character))
+                print('CHARACTER:', repr(m['character']))
+                m['add_to_image'] = True
+                m['value_to_add_to_image'] = m['character']
                 state = STATE_END_WORD
             else:
                 print('Invalid character in character literal: {}'.format(repr(c)))
                 break
         else:
-            if escape:
-                escape = False
-                got_character = True
+            if m['escape']:
+                m['escape'] = False
+                m['got_character'] = True
                 if c == '\\':
-                    character = '\\'
+                    m['character'] = '\\'
                 elif c == 'n':
-                    character = '\n'
+                    m['character'] = '\n'
                 elif c == '\'':
-                    character = '\''
+                    m['character'] = '\''
                 else:
                     print('Invalid escaped character in character: {}'.format(repr(c)))
                     break
             elif c == '\\':
-                escape = True
+                m['escape'] = True
             else:
-                got_character = True
-                character = c
+                m['got_character'] = True
+                m['character'] = c
 
 # Single Line Comment
     elif state == STATE_IGNORE_TO_END_LINE:
@@ -413,39 +426,38 @@ while True:
         else:
             continue
 
+# Uncertain if op or label
 # Add characters to word until ':', ' ', '\n' or '\0'
     elif state == STATE_UNCERTAIN:
-        if c == '\n' or c == '\0' or c == ' ':
-            #m.print()
-            #sys.exit()
+        if c == '\n' or c == '\0' or c == ' ': # Match word to OP
             m['op_index'] = 0
+            op_pointer = None
             while True: # Iterate OPS
-                    
                 m['word_index'] = 0
                 m['op_matched'] = False
                 while True: # Iterate Characters
                     word_char = m[m.l('word') + m['word_index']]
-                    op_char = m[m.l('OPS') + 1 + op_element_size * m['op_index'] + m['word_index']]
-                    if word_char != op_char:
+                    op_pointer = m.l('OPS') + 1 + op_element_size * m['op_index']
+                    op_char = m[op_pointer + m['word_index']]
+                    if word_char != op_char: # Failure on this op
                         break
                     m['word_index'] += 1
-                    if m['word_index'] == m['word']:
+                    if m['word_index'] > m['word']: # Sucess on this op
                         m['op_matched'] = True
                         break
-
-                if m['op_matched']:
+                if m['op_matched']: # Sucess on search
                     break
-                    
                 m['op_index'] += 1
-
-                if m['op_index'] == m['OPS']:
+                if m['op_index'] == m['OPS']: # Failure on search
                     print('NOT AN OP')
                     sys.exit()
                 
             m['instruction'] = True
             print('OP:', repr(m.get_string('word')))
+            m['add_to_image'] = True
+            m['value_to_add_to_image'] = m[op_pointer + max_op_size + 1]
             state = STATE_END_WORD
-        elif c == ':':
+        elif c == ':': # Define Label
             print('LABEL DEFINED:', repr(m.get_string('word')))
             state = STATE_END_WORD
 
@@ -472,17 +484,25 @@ while True:
         if c == '\0':
             running = False
 
-# Add character to current word
+# Add character to current word ==============================================
     if m['add_to_word']:
         if m['word'] == m['MAX_WORD_SIZE']:
             print('WORD TOO BIG')
             sys.exit(1)
         m['word'] += 1
         m[m.l('word') + m['word']] = c
-        
+
+# Add to image ===============================================================
+
+    if m['add_to_image']:
+        print('=================================================================================', repr(m['value_to_add_to_image']))
+        m['add_to_image'] = False
+
+
+#  Exit loop
     if not running:
         break
 
 print('===============================================================================\n')
 
-#m.print()
+m.print()
