@@ -1,25 +1,24 @@
 georgios;assembly;;
 
-// Init %0 to 0
-set %0 0
+; Init %0 to 0
+= %0 0
 
-// Loop
 LOOP:
 
-// Add 1 to %0
-addv %0 %0 1
+; Add 1 to %0
+++ %0
 
-// Convert to ASCII, display it
-//addv %1 %0 30
-set %1 4e
+; Convert to ASCII, display it
++ %1 %0 #30
+= %1 #4e
 out 0 0 %1
 
-// Display newline
-set %1 0a
+; Display newline
+= %1 #0a
 out 0 0 %1
 
-// Goto LOOP if %0 < a (10 in hex)
-ltv %1 %0 a
-ifv %1 @LOOP
+; Goto LOOP if %0 < 10
+< %1 %0 10
+if %1 @LOOP
 
 halt
