@@ -1,9 +1,11 @@
+# Georgios Prototype Assemmbler
+
 import sys
 from pathlib import Path
 from argparse import ArgumentParser
 
 def fixed(size, string):
-    '''Create fixed string for Memory class
+    '''Create fixed size string for Memory class
     '''
     l = len(string)
     if l > size:
@@ -11,6 +13,9 @@ def fixed(size, string):
     return tuple([string] + ([ None ] * (size - l)))
 
 class Memory:
+    ''' Simulation of linear memory space
+    '''
+
     def __init__(self, size):
         self.size = size
         self.data = [None] * size
@@ -18,6 +23,8 @@ class Memory:
         self.labels = {}
 
     def add_value(self, value):
+        '''Add a single value to the memory, push edge back.
+        '''
         if isinstance(value, tuple):
             for i in value:
                 self.add_value(i)
@@ -37,9 +44,13 @@ class Memory:
             self.edge += 1
 
     def l(self, label):
+        '''Shortcut for getting label values
+        '''
         return self.labels[label]
 
     def get_string(self, key):
+        '''Build georgios string located at key and return python string
+        '''
         location = None
         if isinstance(key, int):
             location = key
@@ -72,6 +83,8 @@ class Memory:
                 self.add_value(value)
 
     def print(self):
+        '''Print Memory space, skips uninitiated space
+        '''
         label_max_size = 0
         for k, v in self.labels.items():
             l = len(k)
@@ -137,7 +150,7 @@ m['SPECIAL_REGISTERS'] = [
     "mem",
 ]
 m['TOTAL_NO_REGISTERS'] = 16
-m['NO_GENRAL_REGISTERS'] = m['TOTAL_NO_REGISTERS'] - m['SPECIAL_REGISTERS']
+m['NO_GENERAL_REGISTERS'] = m['TOTAL_NO_REGISTERS'] - m['SPECIAL_REGISTERS']
 
 # OPS
 max_op_size = 5
@@ -200,13 +213,16 @@ STATE_COMMENT = 14
 STATE_IGNORE_TO_END_LINE = 15
 STATE_UNCERTAIN = 16
 
-IMAGE_CHUNK_SIZE = 8 # includes metadata and content
+IMAGE_MAX_CONTENT = 5
+IMAGE_CHUNK_SIZE = 2 + IMAGE_MAX_CONTENT # includes metadata and content
 
 # Variables ==================================================================
 
 state = STATE_NEW_WORD # Should stay in registers
 
-# OP Seraching
+m['line'] = 1
+
+# OP Searching
 m['word_index'] = 0
 m['op_index'] = 0
 m['op_matched'] = False
@@ -216,14 +232,10 @@ m['word'] = [ None ] * (m['MAX_WORD_SIZE'] + 1)
 m['word'] = 0
 m['add_to_word'] = False
 
-# Array Building List
-m['array_list_size'] = 0
-m['array_list_head'] = 0
-m['array_list_current'] = 0
-
 # Current Array
 m['array_start'] = 0
 m['array_size'] = 0
+m['set_array_start'] = False
 m['got_character'] = 0
 m['character'] = 0
 m['escape'] = False
@@ -231,24 +243,43 @@ m['escape'] = False
 # Current Instruction
 m['instruction'] = False
 m['arguments'] = 0
+m['no_arguments'] = 0 # Number of arguments the current instruction needs
+m['indirection_offset'] = 0
+m['register_mask'] = 0
+m['register_value'] = 0
 
-# Product
+# Product Image
 m['add_to_image'] = False
 m['value_to_add_to_image'] = 0
-# Image list format is NEXT, PREV, SIZE, CONTENT
+# Image list format is NEXT, [SIZE, CONTENT]
 m['image_head'] = 0
 m['image_tail'] = 0
+m['image_size'] = 0
+
+# Label Definitions
+# NEXT, LOCATION, [SIZE, CONTENT]
+m['label_head'] = 0
+m['label_tail'] = 0
+
+# Label Inserts
+# NEXT, LOCATION, [SIZE, CONTENT]
+m['insert_head'] = 0
+m['insert_tail'] = 0
 
 # Main Loop ==================================================================
 c = 1
 running = True
 stream_index = 20
 while True:
+    word_states = True
     if stream_index < stream_legnth:
         c = stream[stream_index]
         stream_index += 1
     else:
         c = '\0'
+
+    if c == '\n':
+        m['line'] += 1
         
 # New Word State =============================================================
 
@@ -283,10 +314,11 @@ while True:
             continue
         elif c == '"' and not m['instruction']: # Begin String
             state = STATE_STRING
-            array_list_head = m.allocate(2)
-            array_list_size = 0
-            image.append(0)
-            continue
+            m['array_size'] = 0
+            m['add_to_image'] = True
+            m['value_to_add_to_image'] = 0
+            m['set_array_start'] = True
+            word_states = False
         elif c == '\'' and not m['instruction']: # Begin Character
             state = STATE_CHARACTER
             character = 0
@@ -300,174 +332,269 @@ while True:
 
 # Word States ================================================================
 
-# LABEL INSERT
-    if state == STATE_LABEL_INSERT:
-        if c == ' ' or c == '\n' or c == '\0':
-            print('LABEL INSERT:', repr(m.get_string('word')))
-            state = STATE_END_WORD
-        elif c.isalnum() or c == '_':
-            pass
-        else:
-            print('Invalid character in label insert: {}'.format(repr(c)))
-            break
-
-# VALUE
-    elif state == STATE_VALUE:
-        if c == ' ' or c == '\n' or c == '\0':
-            print('VALUE:', repr(m.get_string('word')))
-            state = STATE_END_WORD
-        elif c.isdigit():
-            pass
-        else:
-            print('Invalid character in value: {}'.format(repr(c)))
-            break
-
-# HEX VALUE
-    elif state == STATE_HEX_VALUE:
-        if c == ' ' or c == '\n' or c == '\0':
-            print('HEX VALUE:', repr(m.get_string('word')))
-            state = STATE_END_WORD
-        elif c.isdigit() or c in 'abcdefABCDEF':
-            pass
-        else:
-            print('Invalid character in hex: {}'.format(repr(c)))
-            break
-
-# REGISTER
-    elif state == STATE_REGISTER:
-        if c.isalpha():
-            state = STATE_SPECIAL_REGISTER
-        elif c.isdigit():
-            state = STATE_GENERAL_REGISTER
-        else:
-            print('Invalid character after register symbol: {}'.format(repr(c)))
-            break
-
-# SPECIAL REGISTER
-    elif state == STATE_SPECIAL_REGISTER:
-        if c == ' ' or c == '\n':
-            print('SPECIAL REGISTER:', repr(word))
-            state = STATE_END_WORD
-        elif c.isalpha():
-            pass
-        else:
-            print('Invalid character in special register: {}'.format(repr(c)))
-            break
-
-# GENERAL REGISTER
-    elif state == STATE_GENERAL_REGISTER:
-        if c == ' ' or c == '\n':
-            print('GENERAL REGISTER:', repr(m.get_string('word')))
-            state = STATE_END_WORD
-        elif c.isdigit():
-            pass
-        else:
-            print('Invalid character in general register: {}'.format(repr(c)))
-            break
-
-# STRING
-    elif state == STATE_STRING:
-        if m['escape']:
-            m['escape'] = False
-            m['array_size'] += 1
-            if c == '\\':
-                image.append('\\')
-            elif c == 'n':
-                image.append('\n')
-            elif c == '"':
-                image.append('"')
+    if word_states:
+    # LABEL INSERT
+        if state == STATE_LABEL_INSERT:
+            if c == ' ' or c == '\n' or c == '\0':
+                print('LABEL INSERT:', repr(m.get_string('word')))
+                # NEXT, LOCATION, SIZE, CHAR0, ...
+                if m['insert_head'] == 0:
+                    m['insert_head'] = m.edge
+                else:
+                    m[m['insert_tail']] = m.edge
+                m['insert_tail'] = m.edge
+                m[m['insert_tail'] + 1] = m['image_size']
+                size = m['word']
+                m[m['insert_tail'] + 2] = size
+                for i in range(0, size):
+                    m[m['insert_tail'] + 3 + i] = m[m.l('word') + 1 + i]
+                m.edge += (3 + size)
+                state = STATE_END_WORD
+            elif c.isalnum() or c == '_':
+                m['add_to_word'] = True
             else:
-                print('Invalid escaped character in string: {}'.format(repr(c)))
+                print('Invalid character in label insert: {}'.format(repr(c)))
                 break
-        elif c == '\\':
-            m['escape'] = True
-        elif c == '"':
-            image[m['array_start']] = m['array_size']
-            print('STRING with', m['array_size'], 'elements')
-            state = STATE_END_WORD
-        else:
-            m['array_size'] += 1
-            image.append(c)
 
-# CHARACTER
-    elif state == STATE_CHARACTER:
-        if m['got_character']:
-            if c == '\'':
-                print('CHARACTER:', repr(m['character']))
+    # VALUE
+        elif state == STATE_VALUE:
+            if c == ' ' or c == '\n' or c == '\0':
+                print('VALUE:', repr(m.get_string('word')))
+                # Convert word to value
+                value = 0
+                factor = 1
+                done = m.l('word')
+                pointer = done + m['word']
+                while True:
+                    if pointer == done:
+                        break
+                    value += factor * (ord(m[pointer]) - ord('0'))
+                    factor *= 10
+                    pointer -= 1
                 m['add_to_image'] = True
-                m['value_to_add_to_image'] = m['character']
+                m['value_to_add_to_image'] = value
+                state = STATE_END_WORD
+            elif c.isdigit():
+                m['add_to_word'] = True
+            else:
+                print('Invalid character in value: {}'.format(repr(c)))
+                break
+
+    # HEX VALUE
+        elif state == STATE_HEX_VALUE:
+            zero = ord('0')
+            nine = ord('9')
+            a = ord('a')
+            f = ord('f')
+            A = ord('A')
+            F = ord('F')
+            case = A - a
+            if c == ' ' or c == '\n' or c == '\0':
+                print('HEX VALUE:', repr(m.get_string('word')))
+                # Convert word to value
+                value = 0
+                factor = 1
+                done = m.l('word')
+                pointer = done + m['word']
+                while True:
+                    if pointer == done:
+                        break
+                    char = m[pointer]
+                    digit = 0
+                    if zero <= ord(char) <= nine:
+                        digit = ord(char) - zero
+                    else:
+                        digit = 10 + ord(char) - a
+                    value += factor * digit
+                    factor *= 16
+                    pointer -= 1
+                m['add_to_image'] = True
+                m['value_to_add_to_image'] = value
                 state = STATE_END_WORD
             else:
-                print('Invalid character in character literal: {}'.format(repr(c)))
+                if zero <= ord(c) <= nine or a <= ord(c) <= f:
+                    m['add_to_word'] = True
+                elif A <= ord(c) <= F:
+                    c = c.lower()
+                    m['add_to_word'] = True
+                else:
+                    print('Invalid character in hex: {}'.format(repr(c)))
+                    break
+
+    # REGISTER
+        elif state == STATE_REGISTER:
+            m['register_value'] |= 8 >> m['arguments']
+            if c.isalpha():
+                state = STATE_SPECIAL_REGISTER
+            elif c.isdigit():
+                state = STATE_GENERAL_REGISTER
+            else:
+                print('Invalid character after register symbol: {}'.format(repr(c)))
                 break
-        else:
+
+    # SPECIAL REGISTER
+        elif state == STATE_SPECIAL_REGISTER:
+            if c == ' ' or c == '\n':
+                print('SPECIAL REGISTER:', repr(word))
+                state = STATE_END_WORD
+            elif c.isalpha():
+                m['add_to_word'] = True
+            else:
+                print('Invalid character in special register: {}'.format(repr(c)))
+                break
+
+    # GENERAL REGISTER
+        elif state == STATE_GENERAL_REGISTER:
+            if c == ' ' or c == '\n':
+                print('GENERAL REGISTER:', repr(m.get_string('word')))
+                # Convert word to value
+                value = 0
+                factor = 1
+                done = m.l('word')
+                pointer = done + m['word']
+                while True:
+                    if pointer == done:
+                        break
+                    value += factor * (ord(m[pointer]) - ord('0'))
+                    factor *= 10
+                    pointer -= 1
+                m['add_to_image'] = True
+                m['value_to_add_to_image'] = value + m['SPECIAL_REGISTERS']
+                state = STATE_END_WORD
+            elif c.isdigit():
+                m['add_to_word'] = True
+            else:
+                sys.exit('Line {}: Invalid character in general register: {}'.format(m['line'], repr(c)))
+
+    # STRING
+        elif state == STATE_STRING:
             if m['escape']:
                 m['escape'] = False
-                m['got_character'] = True
+                m['array_size'] += 1
                 if c == '\\':
-                    m['character'] = '\\'
+                    m['add_to_image'] = True
+                    m['value_to_add_to_image'] = '\\'
                 elif c == 'n':
-                    m['character'] = '\n'
-                elif c == '\'':
-                    m['character'] = '\''
+                    m['add_to_image'] = True
+                    m['value_to_add_to_image'] = '\n'
+                elif c == '"':
+                    m['add_to_image'] = True
+                    m['value_to_add_to_image'] = '"'
                 else:
-                    print('Invalid escaped character in character: {}'.format(repr(c)))
-                    break
+                    sys.exit('Line {}: Invalid escaped character in string: {}'.format(m['line'], repr(c)))
             elif c == '\\':
                 m['escape'] = True
+            elif c == '"':
+                m[m['array_start']] = m['array_size']
+                print('STRING with', m['array_size'], 'elements')
+                state = STATE_END_WORD
             else:
-                m['got_character'] = True
-                m['character'] = c
+                m['array_size'] += 1
+                m['add_to_image'] = True
+                m['value_to_add_to_image'] = c
 
-# Single Line Comment
-    elif state == STATE_IGNORE_TO_END_LINE:
-        if c == '\n' or c == '\0':
-            state = STATE_END_LINE
-        else:
-            continue
+    # CHARACTER
+        elif state == STATE_CHARACTER:
+            if m['got_character']:
+                if c == '\'':
+                    print('CHARACTER:', repr(m['character']))
+                    m['add_to_image'] = True
+                    m['value_to_add_to_image'] = m['character']
+                    state = STATE_END_WORD
+                else:
+                    sys.exit('Line {}: Invalid character literal: {}'.format(m['line'], repr(c)))
+            else:
+                if m['escape']:
+                    m['escape'] = False
+                    m['got_character'] = True
+                    if c == '\\':
+                        m['character'] = '\\'
+                    elif c == 'n':
+                        m['character'] = '\n'
+                    elif c == '\'':
+                        m['character'] = '\''
+                    else:
+                        sys.exit('Line {}: Invalid escaped character literal: {}'.format(m['line'], repr(c)))
+                elif c == '\\':
+                    m['escape'] = True
+                else:
+                    m['got_character'] = True
+                    m['character'] = c
 
-# Uncertain if op or label
-# Add characters to word until ':', ' ', '\n' or '\0'
-    elif state == STATE_UNCERTAIN:
-        if c == '\n' or c == '\0' or c == ' ': # Match word to OP
-            m['op_index'] = 0
-            op_pointer = None
-            while True: # Iterate OPS
-                m['word_index'] = 0
-                m['op_matched'] = False
-                while True: # Iterate Characters
-                    word_char = m[m.l('word') + m['word_index']]
-                    op_pointer = m.l('OPS') + 1 + op_element_size * m['op_index']
-                    op_char = m[op_pointer + m['word_index']]
-                    if word_char != op_char: # Failure on this op
+    # Single Line Comment
+        elif state == STATE_IGNORE_TO_END_LINE:
+            if c == '\n' or c == '\0':
+                state = STATE_END_LINE
+            else:
+                continue
+
+    # Uncertain if op or label
+    # Add characters to word until ':', ' ', '\n' or '\0'
+        elif state == STATE_UNCERTAIN:
+
+            if c == '\n' or c == '\0' or c == ' ': # Match word to OP
+                m['op_index'] = 0
+                op_pointer = None
+                while True: # Iterate OPS
+                    m['word_index'] = 0
+                    m['op_matched'] = False
+                    while True: # Iterate Characters
+                        word_char = m[m.l('word') + m['word_index']]
+                        op_pointer = m.l('OPS') + 1 + op_element_size * m['op_index']
+                        op_char = m[op_pointer + m['word_index']]
+                        if word_char != op_char: # Failure on this op
+                            break
+                        m['word_index'] += 1
+                        if m['word_index'] > m['word']: # Sucess on this op
+                            m['op_matched'] = True
+                            break
+                    if m['op_matched']: # Sucess on search
                         break
-                    m['word_index'] += 1
-                    if m['word_index'] > m['word']: # Sucess on this op
-                        m['op_matched'] = True
-                        break
-                if m['op_matched']: # Sucess on search
-                    break
-                m['op_index'] += 1
-                if m['op_index'] == m['OPS']: # Failure on search
-                    print('NOT AN OP')
-                    sys.exit()
-                
-            m['instruction'] = True
-            print('OP:', repr(m.get_string('word')))
-            m['add_to_image'] = True
-            m['value_to_add_to_image'] = m[op_pointer + max_op_size + 1]
-            state = STATE_END_WORD
-        elif c == ':': # Define Label
-            print('LABEL DEFINED:', repr(m.get_string('word')))
-            state = STATE_END_WORD
+                    m['op_index'] += 1
+                    if m['op_index'] == m['OPS']: # Failure on search
+                        print('NOT AN OP')
+                        sys.exit()
+                    
+                m['instruction'] = True
+                print('OP:', repr(m.get_string('word')))
+
+                m['add_to_image'] = True
+                m['set_array_start'] = True
+                op_pointer += max_op_size + 1
+                m['value_to_add_to_image'] = m[op_pointer]
+
+                op_pointer += 1
+                m['no_arguments'] = m[op_pointer]
+                op_pointer += 1
+                m['indirection_offset'] = m[op_pointer]
+                op_pointer += 1
+                m['register_mask'] = m[op_pointer]
+                m['register_value'] = 0
+
+                state = STATE_END_WORD
+
+            elif c == ':': # Define Label
+                # NEXT, LOCATION, SIZE, CHAR0, ...
+                print('LABEL DEFINED:', repr(m.get_string('word')))
+                if m['label_head'] == 0:
+                    m['label_head'] = m.edge
+                else:
+                    m[m['label_tail']] = m.edge
+                m['label_tail'] = m.edge
+                m[m['label_tail'] + 1] = m['image_size']
+                size = m['word']
+                m[m['label_tail'] + 2] = size
+                for i in range(0, size):
+                    m[m['label_tail'] + 3 + i] = m[m.l('word') + 1 + i]
+                m.edge += (3 + size)
+                state = STATE_END_WORD
 
 # End Word State =============================================================
     if state == STATE_END_WORD:
         m['word'] = 0
         m['add_to_word'] = False
         if m['instruction'] and m['arguments']:
-            print('   is Argument {}'.format(m['arguments']))
-
+            print('    is Argument {}'.format(m['arguments']))
         if c == ' ':
             state = STATE_NEW_WORD
         else:
@@ -476,7 +603,29 @@ while True:
 # End Line State =============================================================
     if state == STATE_END_LINE:
         if m['instruction']:
-            print('END INSTRUCTION, fill:', m['MAX_ARGUMENTS'] - m['arguments'])
+            print('END INSTRUCTION')
+            if m['arguments'] != m['no_arguments']:
+                sys.exit('Line {}: Invalid Number of arguments'.format(m['line'], repr(c)))
+
+            print('    Register Value:', m['register_value'] & 1, end='')
+            print((m['register_value'] >> 1) & 1, end='')
+            print((m['register_value'] >> 2) & 1)
+
+            print('    Indireciton Offset:', m['indirection_offset'])
+
+            op = m[m['array_start']]
+            full_op = op << 2
+            value = m['register_value']
+            if not m['indirection_offset']:
+                value = value >> 1
+            value = value & 3
+            print('    Registers Arguments:', bin(value))
+            print('    OP:', bin(op))
+            full_op = full_op | value
+            print('    Full OP:', bin(full_op))
+
+            m[m['array_start']] = full_op
+
             m['instruction'] = False
             m['arguments'] = 0
         state = STATE_NEW_WORD
@@ -487,17 +636,43 @@ while True:
 # Add character to current word ==============================================
     if m['add_to_word']:
         if m['word'] == m['MAX_WORD_SIZE']:
-            print('WORD TOO BIG')
-            sys.exit(1)
+            sys.exit('Line {}: Word is too big'.format(m['line']))
         m['word'] += 1
         m[m.l('word') + m['word']] = c
 
 # Add to image ===============================================================
 
     if m['add_to_image']:
-        print('=================================================================================', repr(m['value_to_add_to_image']))
-        m['add_to_image'] = False
+        new_chunk = False
+        prev = 0
+        if m['image_head'] == 0:
+            # No Chunks, create inital head
+            m['image_tail'] = m['image_head'] = m.edge
+            new_chunk = True
+        elif m[m['image_tail'] + 1] == IMAGE_MAX_CONTENT:
+            # Chunk is full, create new chunk
+            prev = m['image_tail']
+            m[m['image_tail']] = m.edge # Set Current Next to the next chunk
+            m['image_tail'] = m.edge
+            new_chunk = True
 
+        if new_chunk: # Create New chunk
+            m.edge += IMAGE_CHUNK_SIZE
+            m[m['image_tail']] = 0
+            m[m['image_tail'] + 1] = 0
+        
+        # Add value to chunk
+        m['image_size'] += 1
+        size = m[m['image_tail'] + 1]
+        place = m['image_tail'] + 2 + size
+        m[place] = m['value_to_add_to_image'] 
+        m[m['image_tail'] + 1] = size + 1
+
+        if m['set_array_start']:
+            m['array_start'] = place
+            m['set_array_start'] = False
+
+        m['add_to_image'] = False
 
 #  Exit loop
     if not running:
@@ -505,4 +680,43 @@ while True:
 
 print('===============================================================================\n')
 
-m.print()
+#m.print()
+
+print('Image:')
+current_chunk = m['image_head']
+while True:
+    size = m[current_chunk + 1]
+    for i in range(0, size):
+        print(repr(m[current_chunk + 2 + i]))
+    if current_chunk == m['image_tail']:
+        break
+    else:
+        current_chunk = m[current_chunk]
+
+print('Label Definitions:')
+current = m['label_head']
+while True:
+    size = m[current + 2]
+    print('    ', end='')
+    for i in range(0, size):
+        print(m[current + 3 + i], end='')
+    print('')
+    print('        Location:', m[current + 1])
+    if current == m['label_tail']:
+        break
+    else:
+        current = m[current]
+
+print('Label Inserts:')
+current = m['insert_head']
+while True:
+    size = m[current + 2]
+    print('    ', end='')
+    for i in range(0, size):
+        print(m[current + 3 + i], end='')
+    print('')
+    print('        Location:', m[current + 1])
+    if current == m['insert_tail']:
+        break
+    else:
+        current = m[current]

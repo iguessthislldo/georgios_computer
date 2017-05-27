@@ -101,11 +101,11 @@ void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
     case 0x08:
         if (verbose)
             fprintf(stderr, "    in\n");
-        registers[i3].value(fgetc(stdin));
+        registers[i0].value(fgetc(stdin));
         break;
 //09 |09 |001001 |out  |      |Write A to Output(%B, %C)            |I R R 11 0 011 |
             fprintf(stderr, "    out\n");
-        fputc(first ? registers[i3].value() : i3, stdout);
+        fputc(first ? registers[i0].value() : i0, stdout);
         fflush(stdout);
         break;
 //32 |20 |100000 |+    |00000 |Set %A to B add C                    |R I I 11 1 100 |
