@@ -7,33 +7,46 @@
  * TODO: Overflow
  */
 
-void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
+System::word_t System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
+    word_t pc_change = 4;
+
     // Extract OP Code
     word_t op = i0 >> 2;
     // Extract Arugument Indirection
     word_t first = i0 & 2;
     word_t second = i0 & 1;
 
-    word_t b, c;
-    if (first) {
-        b = registers[i2].value();
-    } else {
-        b = i2;
-    }
-    if (second) {
-        c = registers[i3].value();
-    } else {
-        c = i3;
-    }
-
-    word_t next_cflags = 0x00;
     if (verbose) {
         fprintf(stderr, "Execute %x, %x, %x, %x\n", i0, i1, i2, i3);
         if (first) fprintf(stderr, "    First ambiguous argument is a register\n");
         else fprintf(stderr, "    First ambiguous argument is a value\n");
         if (second) fprintf(stderr, "    Second ambiguous argument is a register\n");
         else fprintf(stderr, "    Second ambiguous argument is a value\n");
+        fprintf(stderr, "OP: %x / %u\n", op, op);
     }
+
+    word_t a, b, c;
+
+    if (first) {
+        b = registers[i2].value();
+        if (verbose)
+            fprintf(stderr, "       R%u(%u)\n", i2, b);
+    } else {
+        b = i2;
+        if (verbose)
+            fprintf(stderr, "       %u\n", b);
+    }
+    if (second) {
+        c = registers[i3].value();
+        if (verbose)
+            fprintf(stderr, "       R%u(%u)\n", i3, c);
+    } else {
+        c = i3;
+        if (verbose)
+            fprintf(stderr, "       %u\n", c);
+    }
+
+    word_t next_cflags = 0x00;
 //dec|hex|bin    |name |ALU OP|DESCRIPTION                          |ARGUMENTS      |
     word_t value;
     switch (op) {
@@ -41,6 +54,7 @@ void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
     case 0x00:
         if (verbose)
             fprintf(stderr, "    nop\n");
+        pc_change = 1;
         break;
 //01 |01 |000001 |=    |      |Set %A to B                          |R I _ 10 1 100 |
     case 0x01: // = (set)
@@ -52,6 +66,9 @@ void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
             );
         else
             registers[i1].value(i2);
+        if (verbose)
+            fprintf(stderr, "    R%u now equals %u\n", i1, registers[i1].value());
+        pc_change = 3;
         break;
 //02 |02 |000010 |save |      |Set memory at A to B                 |I I _ 10 0 000 |
     case 0x02:
@@ -63,6 +80,7 @@ void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
         } else {
             memory[i1] = value;
         }
+        pc_change = 3;
         break;
 //03 |03 |000011 |load |      |Set %A to memory at B                |R I _ 10 1 100 |
     case 0x03:
@@ -71,14 +89,24 @@ void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
         registers[i1].program_set_value(
             first ? registers[i2].value() : i2
         );
+        pc_change = 3;
         break;
 //04 |04 |000100 |if   |      |If %A go to B                        |R I _ 10 1 100 |
     case 0x04:
-        if (verbose)
-            fprintf(stderr, "    if\n");
-        if(registers[i1].value()) {
+        if (verbose) {
+            fprintf(stderr, "    if R%u(%u)\n", i1, registers[i1].value());
+            if (first)
+                fprintf(stderr, "        R%u(%u)\n", i2, registers[i2].value());
+            else
+                fprintf(stderr, "        %u\n", i2);
+        }
+
+        if (registers[i1].value()) {
             registers[rpc].value(first ? registers[i2].value() : i2);
             next_cflags |= INCREMENT_PC;
+            pc_change = 0;
+        } else {
+            pc_change = 3;
         }
         break;
 //05 |05 |000101 |goto |      |Jump to A                            |I _ _ 01 0 000 |
@@ -87,46 +115,68 @@ void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
             fprintf(stderr, "    goto\n");
         registers[rpc].value(first ? registers[i1].value() : i1);
         next_cflags |= INCREMENT_PC;
+        pc_change = 0;
         break;
 //06 |06 |000110 |if!  |      |If not %A go to B                    |R I _ 10 1 100 |
     case 0x06:
         if (verbose)
             fprintf(stderr, "    if!\n");
-        if(!registers[i1].value()) {
+        if (!registers[i1].value()) {
             registers[rpc].value(first ? registers[i2].value() : i2);
             next_cflags |= INCREMENT_PC;
+            pc_change = 0;
+        } else {
+            pc_change = 3;
         }
         break;
 //08 |08 |001000 |in   |      |Read Input(%B, %C) to %A             |R R R 11 0 111 |
     case 0x08:
+        a = fgetc(stdin);
         if (verbose)
-            fprintf(stderr, "    in\n");
-        registers[i0].value(fgetc(stdin));
+            fprintf(stderr, "    in R%u = \n", i1, a);
+        registers[i1].value();
         break;
 //09 |09 |001001 |out  |      |Write A to Output(%B, %C)            |I R R 11 0 011 |
-            fprintf(stderr, "    out\n");
-        fputc(first ? registers[i0].value() : i0, stdout);
+    case 0x09:
+        a = first ? registers[i1].value() : i1;
+        if (verbose) {
+            if (second)
+                fprintf(stderr, "    out from R%u: %u\n", i1, a);
+            else
+                fprintf(stderr, "    out : %u\n", a);
+        }
+        fputc(a, stdout);
         fflush(stdout);
         break;
 //32 |20 |100000 |+    |00000 |Set %A to B add C                    |R I I 11 1 100 |
     case 0x20:
         if (verbose)
             fprintf(stderr, "    +\n");
+
+        if (verbose)
+            fprintf(stderr, "       = %u\n", b + c);
+
         registers[i1].value(b + c);
         break;
 //33 |21 |100001 |-    |00001 |Set %A to B subtract C               |R I I 11 1 100 |
     case 0x21:
         if (verbose)
             fprintf(stderr, "    -\n");
+
+        if (verbose)
+            fprintf(stderr, "       = %u\n", b - c);
+
         registers[i1].value(b - c);
         break;
 //34 |22 |100010 |++   |00010 |Increment %A                         |R _ _ 01 0 100 |
     case 0x22:
+        value = registers[i1].value();
         if (verbose)
-            fprintf(stderr, "    ++\n");
+            fprintf(stderr, "    R%u++ = %u + 1\n", i1, value);
         registers[i1].value(
             registers[i1].value() + 1
         );
+        pc_change = 2;
         break;
 //35 |23 |100011 |--   |00011 |Decrement %A                         |R _ _ 01 0 100 |
     case 0x23:
@@ -135,6 +185,7 @@ void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
         registers[i1].value(
             registers[i1].value() - 1
         );
+        pc_change = 2;
         break;
 //36 |24 |100100 |*u   |00100 |Set %A to unsigned mult. of B and C  |R I I 11 1 100 |
     case 0x24:
@@ -257,20 +308,26 @@ void System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
         if (verbose)
             fprintf(stderr, "    ~\n");
         registers[i1].value(~(first ? registers[i2].value() : i2));
+        pc_change = 2;
         break;
 //55 |37 |111001 |!    |11001 |Set %A to logical not B              |R I _ 10 1 100 |
     case 0x37:
         if (verbose)
             fprintf(stderr, "    !\n");
         registers[i1].value(!(first ? registers[i2].value() : i2));
+        pc_change = 2;
         break;
 //63 |3F |111111 |halt |      |Halt the computer                    |_ _ _ 00 0 000 |
-    case 0xFF:
+    case 0x3F:
         if (verbose) fprintf(stderr, "halt\n");
         running = 0;
         break;
-    //default:
-        //printf("Unknown Operation\n");
+        pc_change = 0;
+    default:
+        fprintf(stderr, "Error Unknown Operation\n");
+        exit(100);
     }
     registers[rcflags].value(next_cflags);
+
+    return pc_change;
 }

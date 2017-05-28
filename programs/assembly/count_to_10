@@ -5,15 +5,15 @@ georgios;assembly;;
 
 LOOP: ; = 3
 
-; Add 1 to %0
-++ %0 ; 136 5
-
 ; Convert to ASCII, display it
-+ %1 %0 #30 ; 132 6 5 38
-out 0 0 %1 ; 36 0 0 6
++ %1 %0 #30 ; 130 6 5 38
+out %1 0 0 ; 36 0 0 6
 
 ; Display newline
-out 0 0 #0a
+out #a 0 0
+
+; Add 1 to %0
+++ %0 ; 136 5
 
 ; Goto LOOP if %0 < 10
 < %1 %0 10

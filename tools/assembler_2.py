@@ -349,6 +349,11 @@ while True:
                 for i in range(0, size):
                     m[m['insert_tail'] + 3 + i] = m[m.l('word') + 1 + i]
                 m.edge += (3 + size)
+
+                # Placeholder value
+                m['add_to_image'] = True
+                m['value_to_add_to_image'] = 0
+
                 state = STATE_END_WORD
             elif c.isalnum() or c == '_':
                 m['add_to_word'] = True
@@ -679,44 +684,81 @@ while True:
         break
 
 print('===============================================================================\n')
-
 #m.print()
 
 print('Image:')
 current_chunk = m['image_head']
+image_array = m.edge
 while True:
     size = m[current_chunk + 1]
     for i in range(0, size):
-        print(repr(m[current_chunk + 2 + i]))
+        m[m.edge] = m[current_chunk + 2 + i]
+        m.edge += 1
     if current_chunk == m['image_tail']:
         break
     else:
         current_chunk = m[current_chunk]
 
-print('Label Definitions:')
-current = m['label_head']
-while True:
-    size = m[current + 2]
-    print('    ', end='')
-    for i in range(0, size):
-        print(m[current + 3 + i], end='')
-    print('')
-    print('        Location:', m[current + 1])
-    if current == m['label_tail']:
-        break
-    else:
-        current = m[current]
+insert_head = m['insert_head']
+insert_tail = m['insert_tail']
+label_head = m['label_head']
+label_tail = m['label_tail']
+if not (insert_head == insert_tail == 0):
+    current_insert = insert_head
+    while True: # Iterate Label Inserts
+        current_label = label_head
+        size = m[current_label + 2]
+        match = False
+        while True: # Iterate Labels Defs
+            index = 0
+            location = m[current_label + 1]
+            while True: # Iterate Characters
+                label_char = m[current_label + 2 + index]
+                insert_char = m[current_insert + 2 + index]
+                if insert_char != label_char: # Failure on this label
+                    break
+                index += 1
+                if index > size: # Success on this label
+                    print('Insert {} @ {}'.format(location, m[current_insert + 1]))
+                    m[image_array + m[current_insert + 1]] = location
+                    match = True
+                    break
+            if current_insert == insert_tail:
+                if not match:
+                    sys.exit('Line {}: Label "{}" has no definition',
+                        m['line'],
+                        m.get_string(m[current_insert + 2])
+                    )
+                break
+            else:
+                current_insert = m[current_insert]
+        if current_label == label_tail:
+            break
+        else:
+            current_label = m[current_label]
+m.print()
+with binary.open('bw') as f:
+    i = 0
+    size = m['BINARY_MAGIC_NUMBER'] - 1
+    while True:
+        value = m[m.l('BINARY_MAGIC_NUMBER') + 1 + i]
+        print(repr(value))
+        if isinstance(value, str):
+            value = ord(value)
+        f.write(bytes([value]))
+        i += 1
+        if i > size:
+            break
 
-print('Label Inserts:')
-current = m['insert_head']
-while True:
-    size = m[current + 2]
-    print('    ', end='')
-    for i in range(0, size):
-        print(m[current + 3 + i], end='')
-    print('')
-    print('        Location:', m[current + 1])
-    if current == m['insert_tail']:
-        break
-    else:
-        current = m[current]
+    i = 0
+    size = m['image_size'] - 1
+    while True:
+        value = m[image_array + i]
+        print(repr(value))
+        if isinstance(value, str):
+            value = ord(value)
+        f.write(bytes([value, 0]))
+        i += 1
+        if i > size:
+            break
+

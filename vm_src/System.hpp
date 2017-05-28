@@ -54,15 +54,23 @@ public:
         registers[rmem].value(read_image(path, memory_size));
     }
 
-    void execute(word_t i0, word_t i1, word_t i2, word_t i3);
+    word_t execute(word_t i0, word_t i1, word_t i2, word_t i3);
 
     int run() {
-	word_t pc;
+        if (verbose)
+            fprintf(stderr, "Running\n");
+
+        word_t pc = 0;
         while (running) {
             pc = registers[rpc].value();
-            execute(memory[pc], memory[pc + 1], memory[pc + 2], memory[pc + 3]);
-            registers[rpc].value(pc + 4);
-            getchar();
+            word_t rv = execute(memory[pc], memory[pc + 1], memory[pc + 2], memory[pc + 3]);
+            if (rv)
+                registers[rpc].value(pc + rv);
+
+            if (verbose) {
+                fprintf(stderr, "Hit Enter to run next Instruction...\n");
+                getchar();
+            }
         }
     }
 
@@ -71,13 +79,12 @@ public:
     }
 
     size_t read_image(const string & path, size_t memory_size) {
-        //printf("\"%s\"\n", path.c_str());
         FILE * file = fopen(path.c_str(), "rb");
 
         unsigned magic_size = sizeof(MAGIC_NUMBER) - 1;
         const char * magic_number = MAGIC_NUMBER;
         for (unsigned i = 0; i < magic_size; i++) {
-            if(magic_number[i] != fgetc(file)) {
+            if (magic_number[i] != fgetc(file) || feof(file)) {
                 fprintf(stderr, "Not a valid Georgios binary file\n");
                 exit(1);
             }
@@ -86,12 +93,14 @@ public:
         size_t i = 0;
         while (!feof(file)) {
             fread(&memory[i], sizeof(word_t), 1, file);
-            //printf("%lu\n", memory[i]);
+            if (verbose)
+                fprintf(stderr, "%u\n", memory[i]);
             i++;
         }
         fclose(file);
         return i;
     }
+
 private:
     void rii(bool first, bool second, word_t * b, word_t * c);
 };

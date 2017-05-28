@@ -37,6 +37,9 @@ int main(int argc, char * argv[]) {
         file = argv[2];
         size = atoi(argv[3]);
     }
+
+    if (verbose)
+        fprintf(stderr, "Verbose Mode\n");
     
     System system(file, size, verbose);
 
