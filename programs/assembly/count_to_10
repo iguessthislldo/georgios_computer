@@ -1,22 +1,28 @@
 georgios;assembly;;
 
-; Init %0 to 0
-= %0 0 ; 4 5 0
+; Init %0 to 1
+= %0 1
 
-LOOP: ; = 3
+LOOP:
 
 ; Convert to ASCII, display it
-+ %1 %0 #30 ; 130 6 5 38
-out %1 0 0 ; 36 0 0 6
++ %1 %0 #30
+out %1 0 0
 
 ; Display newline
 out #a 0 0
 
 ; Add 1 to %0
-++ %0 ; 136 5
+++ %0
 
 ; Goto LOOP if %0 < 10
 < %1 %0 10
 if %1 @LOOP
 
-halt ; 252
+; Display 10 and newline
+out #31 0 0
+out #30 0 0
+out #a 0 0
+
+; Done
+halt

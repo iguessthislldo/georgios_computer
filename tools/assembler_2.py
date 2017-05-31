@@ -72,6 +72,8 @@ class Memory:
 
     def __setitem__(self, key, value):
         if isinstance(key, int):
+            if key == 509:
+                print('============================ m[509] =', value)
             if key >= self.size:
                 raise IndexError
             self.data[key] = value
@@ -249,8 +251,8 @@ m['register_mask'] = 0
 m['register_value'] = 0
 
 # Product Image
-m['add_to_image'] = False
-m['value_to_add_to_image'] = 0
+m['set_inst_start'] = False
+m['inst_start'] = 0
 # Image list format is NEXT, [SIZE, CONTENT]
 m['image_head'] = 0
 m['image_tail'] = 0
@@ -265,6 +267,40 @@ m['label_tail'] = 0
 # NEXT, LOCATION, [SIZE, CONTENT]
 m['insert_head'] = 0
 m['insert_tail'] = 0
+
+def add_to_image(m, value):
+    new_chunk = False
+    prev = 0
+    if m['image_head'] == 0:
+        # No Chunks, create inital head
+        m['image_tail'] = m['image_head'] = m.edge
+        new_chunk = True
+    elif m[m['image_tail'] + 1] == IMAGE_MAX_CONTENT:
+        # Chunk is full, create new chunk
+        prev = m['image_tail']
+        m[m['image_tail']] = m.edge # Set Current Next to the next chunk
+        m['image_tail'] = m.edge
+        new_chunk = True
+
+    if new_chunk: # Create New chunk
+        m.edge += IMAGE_CHUNK_SIZE
+        m[m['image_tail']] = 0
+        m[m['image_tail'] + 1] = 0
+    
+    # Add value to chunk
+    m['image_size'] += 1
+    size = m[m['image_tail'] + 1]
+    place = m['image_tail'] + 2 + size
+    m[place] = value
+    m[m['image_tail'] + 1] = size + 1
+
+    if m['set_array_start']:
+        m['array_start'] = place
+        m['set_array_start'] = False
+
+    if m['set_inst_start']:
+        m['inst_start'] = place
+        m['set_inst_start'] = False
 
 # Main Loop ==================================================================
 c = 1
@@ -315,9 +351,8 @@ while True:
         elif c == '"' and not m['instruction']: # Begin String
             state = STATE_STRING
             m['array_size'] = 0
-            m['add_to_image'] = True
-            m['value_to_add_to_image'] = 0
             m['set_array_start'] = True
+            add_to_image(m, 0)
             word_states = False
         elif c == '\'' and not m['instruction']: # Begin Character
             state = STATE_CHARACTER
@@ -351,8 +386,8 @@ while True:
                 m.edge += (3 + size)
 
                 # Placeholder value
-                m['add_to_image'] = True
-                m['value_to_add_to_image'] = 0
+                m['set_array_start'] = True
+                add_to_image(m, 0)
 
                 state = STATE_END_WORD
             elif c.isalnum() or c == '_':
@@ -376,8 +411,7 @@ while True:
                     value += factor * (ord(m[pointer]) - ord('0'))
                     factor *= 10
                     pointer -= 1
-                m['add_to_image'] = True
-                m['value_to_add_to_image'] = value
+                add_to_image(m, value)
                 state = STATE_END_WORD
             elif c.isdigit():
                 m['add_to_word'] = True
@@ -413,8 +447,7 @@ while True:
                     value += factor * digit
                     factor *= 16
                     pointer -= 1
-                m['add_to_image'] = True
-                m['value_to_add_to_image'] = value
+                add_to_image(m, value)
                 state = STATE_END_WORD
             else:
                 if zero <= ord(c) <= nine or a <= ord(c) <= f:
@@ -463,8 +496,7 @@ while True:
                     value += factor * (ord(m[pointer]) - ord('0'))
                     factor *= 10
                     pointer -= 1
-                m['add_to_image'] = True
-                m['value_to_add_to_image'] = value + m['SPECIAL_REGISTERS']
+                add_to_image(m, value + m['SPECIAL_REGISTERS'])
                 state = STATE_END_WORD
             elif c.isdigit():
                 m['add_to_word'] = True
@@ -477,14 +509,11 @@ while True:
                 m['escape'] = False
                 m['array_size'] += 1
                 if c == '\\':
-                    m['add_to_image'] = True
-                    m['value_to_add_to_image'] = '\\'
+                    add_to_image(m, '\\')
                 elif c == 'n':
-                    m['add_to_image'] = True
-                    m['value_to_add_to_image'] = '\n'
+                    add_to_image(m, '\n')
                 elif c == '"':
-                    m['add_to_image'] = True
-                    m['value_to_add_to_image'] = '"'
+                    add_to_image(m, '"')
                 else:
                     sys.exit('Line {}: Invalid escaped character in string: {}'.format(m['line'], repr(c)))
             elif c == '\\':
@@ -495,16 +524,14 @@ while True:
                 state = STATE_END_WORD
             else:
                 m['array_size'] += 1
-                m['add_to_image'] = True
-                m['value_to_add_to_image'] = c
+                add_to_image(m, c)
 
     # CHARACTER
         elif state == STATE_CHARACTER:
             if m['got_character']:
                 if c == '\'':
                     print('CHARACTER:', repr(m['character']))
-                    m['add_to_image'] = True
-                    m['value_to_add_to_image'] = m['character']
+                    add_to_image(m, m['character'])
                     state = STATE_END_WORD
                 else:
                     sys.exit('Line {}: Invalid character literal: {}'.format(m['line'], repr(c)))
@@ -563,10 +590,9 @@ while True:
                 m['instruction'] = True
                 print('OP:', repr(m.get_string('word')))
 
-                m['add_to_image'] = True
-                m['set_array_start'] = True
                 op_pointer += max_op_size + 1
-                m['value_to_add_to_image'] = m[op_pointer]
+                m['set_inst_start'] = True
+                add_to_image(m, m[op_pointer])
 
                 op_pointer += 1
                 m['no_arguments'] = m[op_pointer]
@@ -618,7 +644,7 @@ while True:
 
             print('    Indireciton Offset:', m['indirection_offset'])
 
-            op = m[m['array_start']]
+            op = m[m['inst_start']]
             full_op = op << 2
             value = m['register_value']
             if not m['indirection_offset']:
@@ -627,9 +653,9 @@ while True:
             print('    Registers Arguments:', bin(value))
             print('    OP:', bin(op))
             full_op = full_op | value
-            print('    Full OP:', bin(full_op))
 
-            m[m['array_start']] = full_op
+            print('    Put {} at {}'.format(bin(full_op), m['inst_start']))
+            m[m['inst_start']] = full_op
 
             m['instruction'] = False
             m['arguments'] = 0
@@ -645,48 +671,14 @@ while True:
         m['word'] += 1
         m[m.l('word') + m['word']] = c
 
-# Add to image ===============================================================
-
-    if m['add_to_image']:
-        new_chunk = False
-        prev = 0
-        if m['image_head'] == 0:
-            # No Chunks, create inital head
-            m['image_tail'] = m['image_head'] = m.edge
-            new_chunk = True
-        elif m[m['image_tail'] + 1] == IMAGE_MAX_CONTENT:
-            # Chunk is full, create new chunk
-            prev = m['image_tail']
-            m[m['image_tail']] = m.edge # Set Current Next to the next chunk
-            m['image_tail'] = m.edge
-            new_chunk = True
-
-        if new_chunk: # Create New chunk
-            m.edge += IMAGE_CHUNK_SIZE
-            m[m['image_tail']] = 0
-            m[m['image_tail'] + 1] = 0
-        
-        # Add value to chunk
-        m['image_size'] += 1
-        size = m[m['image_tail'] + 1]
-        place = m['image_tail'] + 2 + size
-        m[place] = m['value_to_add_to_image'] 
-        m[m['image_tail'] + 1] = size + 1
-
-        if m['set_array_start']:
-            m['array_start'] = place
-            m['set_array_start'] = False
-
-        m['add_to_image'] = False
-
 #  Exit loop
     if not running:
         break
 
-print('===============================================================================\n')
-#m.print()
+if verbose:
+    print('===============================================================================\n')
+    print('Image:')
 
-print('Image:')
 current_chunk = m['image_head']
 image_array = m.edge
 while True:
@@ -719,7 +711,8 @@ if not (insert_head == insert_tail == 0):
                     break
                 index += 1
                 if index > size: # Success on this label
-                    print('Insert {} @ {}'.format(location, m[current_insert + 1]))
+                    if verbose:
+                        print('Insert {} @ {}'.format(location, m[current_insert + 1]))
                     m[image_array + m[current_insert + 1]] = location
                     match = True
                     break
@@ -736,13 +729,17 @@ if not (insert_head == insert_tail == 0):
             break
         else:
             current_label = m[current_label]
-m.print()
+if verbose:
+    m.print()
+    print('Final Image ===================================')
+
 with binary.open('bw') as f:
     i = 0
     size = m['BINARY_MAGIC_NUMBER'] - 1
     while True:
         value = m[m.l('BINARY_MAGIC_NUMBER') + 1 + i]
-        print(repr(value))
+        if verbose:
+            print(repr(value))
         if isinstance(value, str):
             value = ord(value)
         f.write(bytes([value]))
@@ -754,7 +751,8 @@ with binary.open('bw') as f:
     size = m['image_size'] - 1
     while True:
         value = m[image_array + i]
-        print(repr(value))
+        if verbose:
+            print(repr(value))
         if isinstance(value, str):
             value = ord(value)
         f.write(bytes([value, 0]))
