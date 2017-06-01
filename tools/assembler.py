@@ -9,7 +9,9 @@ def fixed(size, string):
     '''
     l = len(string)
     if l > size:
-        sys.exit("String too big for fixed sized string")
+        sys.exit("String too big for fixed sized string: {}".format(
+            repr(string)
+        ))
     return tuple([string] + ([ None ] * (size - l)))
 
 class Memory:
@@ -58,6 +60,10 @@ class Memory:
             location = self.labels[key]
 
         length = self.data[location]
+        if not isinstance(length, int):
+            sys.exit('Invalid Georgios string @ {}: {}'.format(
+                location, repr(length)
+            ))
         s = ""
         for i in range(1, length + 1):
             s += self.data[location + i]
@@ -72,10 +78,8 @@ class Memory:
 
     def __setitem__(self, key, value):
         if isinstance(key, int):
-            if key == 509:
-                print('============================ m[509] =', value)
             if key >= self.size:
-                raise IndexError
+                raise IndexError('Out of range in memory list')
             self.data[key] = value
         elif isinstance(key, str):
             if key in self.labels:
@@ -118,7 +122,7 @@ class Memory:
                 last_value_was_none = True
                     
 
-m = Memory(1024)
+m = Memory(2000)
 
 # Parse arguments
 parser = ArgumentParser()
@@ -144,56 +148,56 @@ m['ASSEMBLY_MAGIC_NUMBER'] = "georgios;assembly;;\n"
 m['BINARY_MAGIC_NUMBER'] = "georgios;binary;;\n"
 
 # Registers
+max_fixed_size = 6
 m['SPECIAL_REGISTERS'] = [
-    "cflags",
-    "pc",
-    "aflags",
-    "ahi",
-    "mem",
+    fixed(max_fixed_size, "cflags"),
+    fixed(max_fixed_size, "pc"),
+    fixed(max_fixed_size, "aflags"),
+    fixed(max_fixed_size, "ahi"),
+    fixed(max_fixed_size, "mem"),
 ]
 m['TOTAL_NO_REGISTERS'] = 16
 m['NO_GENERAL_REGISTERS'] = m['TOTAL_NO_REGISTERS'] - m['SPECIAL_REGISTERS']
 
 # OPS
-max_op_size = 5
-op_element_size = 1 + max_op_size + 4
+op_element_size = 1 + max_fixed_size + 4
 m['OPS'] = [
 # String Value, Op Code, Number of arguments, Indirection Offset,
                                                     #Forced Register Mask
-    (fixed(max_op_size, "nop"), 0x00, 0, 0, 0),
-    (fixed(max_op_size, "="), 0x01, 2, 1, 4),
-    (fixed(max_op_size, "save"), 0x02, 2, 0, 0),
-    (fixed(max_op_size, "load"), 0x03, 2, 1, 4),
-    (fixed(max_op_size, "if"), 0x04, 2, 1, 4),
-    (fixed(max_op_size, "goto"), 0x05, 1, 0, 0),
-    (fixed(max_op_size, "if!"), 0x06, 2, 1, 4),
-    (fixed(max_op_size, "in"), 0x08, 3, 0, 7),
-    (fixed(max_op_size, "out"), 0x09, 3, 0, 3),
-    (fixed(max_op_size, "+"), 0x20, 3, 1, 4),
-    (fixed(max_op_size, "-"), 0x21, 3, 1, 4),
-    (fixed(max_op_size, "++"), 0x22, 1, 0, 4),
-    (fixed(max_op_size, "--"), 0x23, 1, 0, 4),
-    (fixed(max_op_size, "*u"), 0x24, 3, 1, 4),
-    (fixed(max_op_size, "/u"), 0x25, 3, 1, 4),
-    (fixed(max_op_size, "*s"), 0x26, 3, 1, 4),
-    (fixed(max_op_size, "/s"), 0x27, 3, 1, 4),
-    (fixed(max_op_size, "&&"), 0x28, 3, 1, 4),
-    (fixed(max_op_size, "||"), 0x29, 3, 1, 4),
-    (fixed(max_op_size, "<<"), 0x2A, 3, 1, 4),
-    (fixed(max_op_size, ">>"), 0x2B, 3, 1, 4),
-    (fixed(max_op_size, ">>>"), 0x2C, 3, 1, 4),
-    (fixed(max_op_size, "&"), 0x2D, 3, 1, 4),
-    (fixed(max_op_size, "|"), 0x2E, 3, 1, 4),
-    (fixed(max_op_size, "^"), 0x2F, 3, 1, 4),
-    (fixed(max_op_size, "=="), 0x30, 3, 1, 4),
-    (fixed(max_op_size, "!="), 0x31, 3, 1, 4),
-    (fixed(max_op_size, ">"), 0x32, 3, 1, 4),
-    (fixed(max_op_size, ">="), 0x33, 3, 1, 4),
-    (fixed(max_op_size, "<"), 0x34, 3, 1, 4),
-    (fixed(max_op_size, "<="), 0x35, 3, 1, 4),
-    (fixed(max_op_size, "~"), 0x36, 2, 1, 4),
-    (fixed(max_op_size, "!"), 0x37, 2, 1, 4),
-    (fixed(max_op_size, "halt"), 0x3f, 0, 0, 0),
+    (fixed(max_fixed_size, "nop"), 0x00, 0, 0, 0),
+    (fixed(max_fixed_size, "="), 0x01, 2, 1, 4),
+    (fixed(max_fixed_size, "save"), 0x02, 2, 0, 0),
+    (fixed(max_fixed_size, "load"), 0x03, 2, 1, 4),
+    (fixed(max_fixed_size, "if"), 0x04, 2, 1, 4),
+    (fixed(max_fixed_size, "goto"), 0x05, 1, 0, 0),
+    (fixed(max_fixed_size, "if!"), 0x06, 2, 1, 4),
+    (fixed(max_fixed_size, "in"), 0x08, 3, 0, 7),
+    (fixed(max_fixed_size, "out"), 0x09, 3, 0, 3),
+    (fixed(max_fixed_size, "+"), 0x20, 3, 1, 4),
+    (fixed(max_fixed_size, "-"), 0x21, 3, 1, 4),
+    (fixed(max_fixed_size, "++"), 0x22, 1, 0, 4),
+    (fixed(max_fixed_size, "--"), 0x23, 1, 0, 4),
+    (fixed(max_fixed_size, "*u"), 0x24, 3, 1, 4),
+    (fixed(max_fixed_size, "/u"), 0x25, 3, 1, 4),
+    (fixed(max_fixed_size, "*s"), 0x26, 3, 1, 4),
+    (fixed(max_fixed_size, "/s"), 0x27, 3, 1, 4),
+    (fixed(max_fixed_size, "&&"), 0x28, 3, 1, 4),
+    (fixed(max_fixed_size, "||"), 0x29, 3, 1, 4),
+    (fixed(max_fixed_size, "<<"), 0x2A, 3, 1, 4),
+    (fixed(max_fixed_size, ">>"), 0x2B, 3, 1, 4),
+    (fixed(max_fixed_size, ">>>"), 0x2C, 3, 1, 4),
+    (fixed(max_fixed_size, "&"), 0x2D, 3, 1, 4),
+    (fixed(max_fixed_size, "|"), 0x2E, 3, 1, 4),
+    (fixed(max_fixed_size, "^"), 0x2F, 3, 1, 4),
+    (fixed(max_fixed_size, "=="), 0x30, 3, 1, 4),
+    (fixed(max_fixed_size, "!="), 0x31, 3, 1, 4),
+    (fixed(max_fixed_size, ">"), 0x32, 3, 1, 4),
+    (fixed(max_fixed_size, ">="), 0x33, 3, 1, 4),
+    (fixed(max_fixed_size, "<"), 0x34, 3, 1, 4),
+    (fixed(max_fixed_size, "<="), 0x35, 3, 1, 4),
+    (fixed(max_fixed_size, "~"), 0x36, 2, 1, 4),
+    (fixed(max_fixed_size, "!"), 0x37, 2, 1, 4),
+    (fixed(max_fixed_size, "halt"), 0x3f, 0, 0, 0),
 ]
 
 # States
@@ -371,7 +375,8 @@ while True:
     # LABEL INSERT
         if state == STATE_LABEL_INSERT:
             if c == ' ' or c == '\n' or c == '\0':
-                print('LABEL INSERT:', repr(m.get_string('word')))
+                if verbose:
+                    print('LABEL INSERT:', repr(m.get_string('word')))
                 # NEXT, LOCATION, SIZE, CHAR0, ...
                 if m['insert_head'] == 0:
                     m['insert_head'] = m.edge
@@ -393,13 +398,17 @@ while True:
             elif c.isalnum() or c == '_':
                 m['add_to_word'] = True
             else:
-                print('Invalid character in label insert: {}'.format(repr(c)))
-                break
+                sys.exit(
+                    'Line {}: Invalid character in label insert: {}'.format(
+                        m['line'], repr(c)
+                    )
+                )
 
     # VALUE
         elif state == STATE_VALUE:
             if c == ' ' or c == '\n' or c == '\0':
-                print('VALUE:', repr(m.get_string('word')))
+                if verbose:
+                    print('VALUE:', repr(m.get_string('word')))
                 # Convert word to value
                 value = 0
                 factor = 1
@@ -416,8 +425,11 @@ while True:
             elif c.isdigit():
                 m['add_to_word'] = True
             else:
-                print('Invalid character in value: {}'.format(repr(c)))
-                break
+                sys.exit(
+                    'Line {}: Invalid character in value: {}'.format(
+                        m['line'], repr(c)
+                    )
+                )
 
     # HEX VALUE
         elif state == STATE_HEX_VALUE:
@@ -429,7 +441,8 @@ while True:
             F = ord('F')
             case = A - a
             if c == ' ' or c == '\n' or c == '\0':
-                print('HEX VALUE:', repr(m.get_string('word')))
+                if verbose:
+                    print('HEX VALUE:', repr(m.get_string('word')))
                 # Convert word to value
                 value = 0
                 factor = 1
@@ -456,8 +469,11 @@ while True:
                     c = c.lower()
                     m['add_to_word'] = True
                 else:
-                    print('Invalid character in hex: {}'.format(repr(c)))
-                    break
+                    sys.exit(
+                        'Line {}: Invalid character in hex value: {}'.format(
+                            m['line'], repr(c)
+                        )
+                    )
 
     # REGISTER
         elif state == STATE_REGISTER:
@@ -467,24 +483,58 @@ while True:
             elif c.isdigit():
                 state = STATE_GENERAL_REGISTER
             else:
-                print('Invalid character after register symbol: {}'.format(repr(c)))
-                break
+                sys.exit(
+                    'Line {}: Invalid character after register symbol: {}'.format(
+                        m['line'], repr(c)
+                    )
+                )
 
     # SPECIAL REGISTER
         elif state == STATE_SPECIAL_REGISTER:
             if c == ' ' or c == '\n':
-                print('SPECIAL REGISTER:', repr(word))
+                if verbose:
+                    print('SPECIAL REGISTER:', repr(m.get_string('word')))
+                register = 0
+                done = False
+                while True: # Iterate Special Register Array
+                    index = 0
+                    pointer = m.l('SPECIAL_REGISTERS') + 1 + register * (1 + max_fixed_size)
+                    size = m[pointer]
+                    while True: # Iterate Arrays
+                        a = m[pointer + index]
+                        b = m[m.l('word') + index]
+                        if a == b:
+                            index += 1
+                            if index > size:
+                                done = True
+                                break
+                            continue
+                        register += 1
+                        break
+                    if done:
+                        break
+                    if register == m['SPECIAL_REGISTERS']:
+                        sys.exit('Line {}: Not a special register: {}'.format(
+                            m['line'], m.get_string('word')
+                        ))
+
+                add_to_image(m, register)
+
                 state = STATE_END_WORD
             elif c.isalpha():
                 m['add_to_word'] = True
             else:
-                print('Invalid character in special register: {}'.format(repr(c)))
-                break
+                sys.exit(
+                    'Line {}: Invalid character in special register: {}'.format(
+                        m['line'], repr(c)
+                    )
+                )
 
     # GENERAL REGISTER
         elif state == STATE_GENERAL_REGISTER:
             if c == ' ' or c == '\n':
-                print('GENERAL REGISTER:', repr(m.get_string('word')))
+                if verbose:
+                    print('GENERAL REGISTER:', repr(m.get_string('word')))
                 # Convert word to value
                 value = 0
                 factor = 1
@@ -501,7 +551,11 @@ while True:
             elif c.isdigit():
                 m['add_to_word'] = True
             else:
-                sys.exit('Line {}: Invalid character in general register: {}'.format(m['line'], repr(c)))
+                sys.exit(
+                    'Line {}: Invalid character in general register: {}'.format(
+                        m['line'], repr(c)
+                    )
+                )
 
     # STRING
         elif state == STATE_STRING:
@@ -515,7 +569,11 @@ while True:
                 elif c == '"':
                     add_to_image(m, '"')
                 else:
-                    sys.exit('Line {}: Invalid escaped character in string: {}'.format(m['line'], repr(c)))
+                    sys.exit(
+                        'Line {}: Invalid escaped character in string: {}'.format(
+                            m['line'], repr(c)
+                        )
+                    )
             elif c == '\\':
                 m['escape'] = True
             elif c == '"':
@@ -534,7 +592,11 @@ while True:
                     add_to_image(m, m['character'])
                     state = STATE_END_WORD
                 else:
-                    sys.exit('Line {}: Invalid character literal: {}'.format(m['line'], repr(c)))
+                    sys.exit(
+                        'Line {}: Invalid character literal: {}'.format(
+                            m['line'], repr(c)
+                        )
+                    )
             else:
                 if m['escape']:
                     m['escape'] = False
@@ -546,7 +608,11 @@ while True:
                     elif c == '\'':
                         m['character'] = '\''
                     else:
-                        sys.exit('Line {}: Invalid escaped character literal: {}'.format(m['line'], repr(c)))
+                        sys.exit(
+                            'Line {}: Invalid escaped character literal: {}'.format(
+                                m['line'], repr(c)
+                            )
+                        )
                 elif c == '\\':
                     m['escape'] = True
                 else:
@@ -563,7 +629,6 @@ while True:
     # Uncertain if op or label
     # Add characters to word until ':', ' ', '\n' or '\0'
         elif state == STATE_UNCERTAIN:
-
             if c == '\n' or c == '\0' or c == ' ': # Match word to OP
                 m['op_index'] = 0
                 op_pointer = None
@@ -584,13 +649,15 @@ while True:
                         break
                     m['op_index'] += 1
                     if m['op_index'] == m['OPS']: # Failure on search
-                        print('NOT AN OP')
-                        sys.exit()
+                        sys.exit('Line {}: Not an op: {}'.format(
+                            m['line'], m.get_string('word')
+                        ))
                     
                 m['instruction'] = True
-                print('OP:', repr(m.get_string('word')))
+                if verbose:
+                    print('OP:', repr(m.get_string('word')))
 
-                op_pointer += max_op_size + 1
+                op_pointer += max_fixed_size + 1
                 m['set_inst_start'] = True
                 add_to_image(m, m[op_pointer])
 
@@ -606,7 +673,8 @@ while True:
 
             elif c == ':': # Define Label
                 # NEXT, LOCATION, SIZE, CHAR0, ...
-                print('LABEL DEFINED:', repr(m.get_string('word')))
+                if verbose:
+                    print('LABEL DEFINED:', repr(m.get_string('word')))
                 if m['label_head'] == 0:
                     m['label_head'] = m.edge
                 else:
@@ -624,7 +692,7 @@ while True:
     if state == STATE_END_WORD:
         m['word'] = 0
         m['add_to_word'] = False
-        if m['instruction'] and m['arguments']:
+        if m['instruction'] and m['arguments'] and verbose:
             print('    is Argument {}'.format(m['arguments']))
         if c == ' ':
             state = STATE_NEW_WORD
@@ -634,15 +702,21 @@ while True:
 # End Line State =============================================================
     if state == STATE_END_LINE:
         if m['instruction']:
-            print('END INSTRUCTION')
+            if verbose:
+                print('END INSTRUCTION')
+
             if m['arguments'] != m['no_arguments']:
-                sys.exit('Line {}: Invalid Number of arguments'.format(m['line'], repr(c)))
+                sys.exit(
+                    'Line {}: Invalid Number of arguments'.format(
+                        m['line'], repr(c)
+                    )
+                )
 
-            print('    Register Value:', m['register_value'] & 1, end='')
-            print((m['register_value'] >> 1) & 1, end='')
-            print((m['register_value'] >> 2) & 1)
-
-            print('    Indireciton Offset:', m['indirection_offset'])
+            if verbose:
+                print('    Register Value:', m['register_value'] & 1, end='')
+                print((m['register_value'] >> 1) & 1, end='')
+                print((m['register_value'] >> 2) & 1)
+                print('    Indireciton Offset:', m['indirection_offset'])
 
             op = m[m['inst_start']]
             full_op = op << 2
@@ -650,11 +724,13 @@ while True:
             if not m['indirection_offset']:
                 value = value >> 1
             value = value & 3
-            print('    Registers Arguments:', bin(value))
-            print('    OP:', bin(op))
+            if verbose:
+                print('    Registers Arguments:', bin(value))
+                print('    OP:', bin(op))
             full_op = full_op | value
 
-            print('    Put {} at {}'.format(bin(full_op), m['inst_start']))
+            if verbose:
+                print('    Put {} at {}'.format(bin(full_op), m['inst_start']))
             m[m['inst_start']] = full_op
 
             m['instruction'] = False
@@ -691,6 +767,7 @@ while True:
     else:
         current_chunk = m[current_chunk]
 
+# Insert Label Values ========================================================
 insert_head = m['insert_head']
 insert_tail = m['insert_tail']
 label_head = m['label_head']
@@ -698,12 +775,16 @@ label_tail = m['label_tail']
 if not (insert_head == insert_tail == 0):
     current_insert = insert_head
     while True: # Iterate Label Inserts
+        print('INSERT:', m.get_string(current_insert + 2))
+        size = m[current_insert + 2]
         current_label = label_head
-        size = m[current_label + 2]
         match = False
+
         while True: # Iterate Labels Defs
+            print('    VS:', m.get_string(current_label + 2))
             index = 0
             location = m[current_label + 1]
+
             while True: # Iterate Characters
                 label_char = m[current_label + 2 + index]
                 insert_char = m[current_insert + 2 + index]
@@ -711,25 +792,33 @@ if not (insert_head == insert_tail == 0):
                     break
                 index += 1
                 if index > size: # Success on this label
-                    if verbose:
-                        print('Insert {} @ {}'.format(location, m[current_insert + 1]))
-                    m[image_array + m[current_insert + 1]] = location
                     match = True
                     break
-            if current_insert == insert_tail:
-                if not match:
-                    sys.exit('Line {}: Label "{}" has no definition',
-                        m['line'],
-                        m.get_string(m[current_insert + 2])
-                    )
+
+            if match:
+                m[image_array + m[current_insert + 1]] = location
+                if verbose:
+                    print('Insert {} @ {}'.format(
+                        location, m[current_insert + 1]
+                    ))
                 break
-            else:
-                current_insert = m[current_insert]
-        if current_label == label_tail:
-            break
-        else:
+
+            # Get next label or Error
+            if current_label == label_tail:
+                if not match:
+                    sys.exit('Label "{}" has no definition'.format(
+                        m.get_string(current_insert + 2)
+                    ))
+                break
             current_label = m[current_label]
+
+        # Get next insert or Exit
+        if current_insert == insert_tail:
+            break
+        current_insert = m[current_insert]
+
 if verbose:
+    print('Memory ===================================')
     m.print()
     print('Final Image ===================================')
 
