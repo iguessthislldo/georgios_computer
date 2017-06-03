@@ -50,8 +50,8 @@ public:
             fprintf(stderr, "Couldn't allocate memory\n");
             exit(1);
         }
-
-        registers[rmem].value(read_image(path, memory_size));
+        registers[rmem].value(memory_size);
+        read_image(path, memory_size);
     }
 
     word_t execute(word_t i0, word_t i1, word_t i2, word_t i3);
@@ -68,7 +68,6 @@ public:
                 registers[rpc].value(pc + rv);
 
             if (verbose) {
-                fprintf(stderr, "Hit Enter to run next Instruction...\n");
                 getchar();
             }
         }
@@ -102,7 +101,7 @@ public:
     }
 
 private:
-    void rii(bool first, bool second, word_t * b, word_t * c);
+    void alu_rri_verbose(const char * op_str, bool first, bool second, word_t & i1, word_t & i2, word_t & i3, word_t & value);
 };
 
 #endif

@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 from argparse import ArgumentParser
 
+W = 16
+
 def fixed(size, string):
     '''Create fixed size string for Memory class
     '''
@@ -218,6 +220,8 @@ STATE_END_LINE = 13
 STATE_COMMENT = 14
 STATE_IGNORE_TO_END_LINE = 15
 STATE_UNCERTAIN = 16
+STATE_INSERT = 17
+STATE_INSERT_OFFSET = 18
 
 IMAGE_MAX_CONTENT = 5
 IMAGE_CHUNK_SIZE = 2 + IMAGE_MAX_CONTENT # includes metadata and content
@@ -271,6 +275,9 @@ m['label_tail'] = 0
 # NEXT, LOCATION, [SIZE, CONTENT]
 m['insert_head'] = 0
 m['insert_tail'] = 0
+
+#insert
+m['insert_sign'] = 0
 
 def add_to_image(m, value):
     new_chunk = False
@@ -334,9 +341,8 @@ while True:
             m['add_to_word'] = True
             if m['instruction']:
                 m['arguments'] += 1
-        elif c == '@' and m['instruction']: # Label Insert
-            state = STATE_LABEL_INSERT
-            m['add_to_word'] = True
+        elif c == '@': # Insert
+            state = STATE_INSERT
             if m['instruction']:
                 m['arguments'] += 1
             continue
@@ -349,8 +355,7 @@ while True:
         elif c == '%' and m['instruction']: # Register
             state = STATE_REGISTER
             m['add_to_word'] = True
-            if m['instruction']:
-                m['arguments'] += 1
+            m['arguments'] += 1
             continue
         elif c == '"' and not m['instruction']: # Begin String
             state = STATE_STRING
@@ -491,7 +496,7 @@ while True:
 
     # SPECIAL REGISTER
         elif state == STATE_SPECIAL_REGISTER:
-            if c == ' ' or c == '\n':
+            if c == ' ' or c == '\n' or c == '\0':
                 if verbose:
                     print('SPECIAL REGISTER:', repr(m.get_string('word')))
                 register = 0
@@ -532,7 +537,7 @@ while True:
 
     # GENERAL REGISTER
         elif state == STATE_GENERAL_REGISTER:
-            if c == ' ' or c == '\n':
+            if c == ' ' or c == '\n' or c == '\0':
                 if verbose:
                     print('GENERAL REGISTER:', repr(m.get_string('word')))
                 # Convert word to value
@@ -688,6 +693,50 @@ while True:
                 m.edge += (3 + size)
                 state = STATE_END_WORD
 
+    # Insert value, Determine if offset or label
+        elif state == STATE_INSERT:
+            if c == '+':
+                m['insert_sign'] = 0
+                state = STATE_INSERT_OFFSET
+                continue
+            elif c == '-':
+                m['insert_sign'] = 1
+                state = STATE_INSERT_OFFSET
+                continue
+            elif c == ' ' or c == '\0' or c == '\n':
+                sys.exit('Line {}: Invalid symbol after "@"'.format(
+                    m['line']
+                ))
+            else: # Label_Insert
+                state = STATE_LABEL_INSERT
+                m['add_to_word'] = True
+
+    # Calcuate Insert Offset
+        elif state == STATE_INSERT_OFFSET:
+            if c == ' ' or c == '\n' or c == '\0':
+                # Convert word to value
+                offset = 0
+                factor = 1
+                done = m.l('word')
+                pointer = done + m['word']
+                while True:
+                    if pointer == done:
+                        break
+                    offset += factor * (ord(m[pointer]) - ord('0'))
+                    factor *= 10
+                    pointer -= 1
+                value = 0
+                if m['insert_sign'] == 0:
+                    value = m['image_size'] + offset
+                else:
+                    value = m['image_size'] - offset
+                if verbose:
+                    print('Insert offset: {} => {}'.format(offset, value))
+                add_to_image(m, value)
+                state = STATE_END_WORD
+            else:
+                m['add_to_word'] = True
+
 # End Word State =============================================================
     if state == STATE_END_WORD:
         m['word'] = 0
@@ -822,6 +871,8 @@ if verbose:
     m.print()
     print('Final Image ===================================')
 
+NO_BYTES = W // 8
+SELECT = 255
 with binary.open('bw') as f:
     i = 0
     size = m['BINARY_MAGIC_NUMBER'] - 1
@@ -840,11 +891,18 @@ with binary.open('bw') as f:
     size = m['image_size'] - 1
     while True:
         value = m[image_array + i]
+
+        # Convert Values into big endian
+        values = []
+        v = value
+        for _ in range(0, NO_BYTES):
+            values.append(v & SELECT)
+            v = v >> 8
+
         if verbose:
-            print(repr(value))
-        if isinstance(value, str):
-            value = ord(value)
-        f.write(bytes([value, 0]))
+            print(value, values)
+
+        f.write(bytes(values))
         i += 1
         if i > size:
             break

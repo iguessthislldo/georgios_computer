@@ -1,0 +1,116 @@
+georgios;assembly;;
+goto @BEGIN
+
+; Allocate Code ==============================================================
+; Makeup of Memory Block
+;     free
+;     next
+;     prev
+;     ...
+ALLOCATE_START: @END
+ALLOCATE_END: @END
+ALLOCATE:
+    ; %0 is an argument, the return address
+    ; %1 is an argument, the ammount to allocate
+    ; %2 is a return value, true if there was an error
+    ; %3 is a return value, the address allocated, invalid if %1 is true
+
+    if %1 @+6 ; If ammount is zero
+        = %2 1 ; Set error state
+        goto %0 ; return
+
+    ; %4 is the block location
+    load %4 @ALLOCATE_START
+
+    ; %5 is the prevous block
+    = %5 0
+
+    ALLOCATE_LOOP:
+        ; %6 is end of the block
+        ; end = block + 3 + ammount
+        = %6 %4
+        + %6 %6 3
+        + %6 %6 %1
+            
+        ; Make sure block doesn't go past edge of memory
+        <= %7 %6 %mem
+        if %7 @+6
+            = %2 1 ; Set error state
+            goto %0 ; return
+        ALLOCATE_NOT_MAX:
+
+        ; if block == ALLOCATE_END
+        load %7 @ALLOCATE_END
+        != %8 %4 %7
+        if %8 @ALLOCATE_AT_END
+            ; Make new block
+            save @ALLOCATE_END %6
+            + %8 %4 1
+            save %8 %6 ; Set the next block
+            ++ %8
+            save %8 %5 ; Set the prev block
+            goto @ALLOCATE_END_OF_LOOP
+        ALLOCATE_AT_END:
+
+        ; Current block is free
+        load %6 %4 ; load block free value
+        if! %6 @ALLOCATE_BLOCK_IS_FREE ; Short curcuit
+        + %7 %4 1 ; Find out if there is enough space
+        load %7 %7
+        - %7 %7 %4
+        + %8 %1 3
+        >= %7 %7 %8
+        && %6 %6 %7 ; Block is free and has enough space
+        if %6 @ALLOCATE_END_OF_LOOP
+        ALLOCATE_BLOCK_IS_FREE:
+
+        ; Go to next block
+        = %5 %4
+        + %6 %4 1
+        load %4 %6
+        goto @ALLOCATE_LOOP
+    ALLOCATE_END_OF_LOOP:
+    
+    ; Mark block as allocated
+    save %4 0
+
+    = %2 0 ; Set error state
+    ; Return Block Content
+    + %3 %4 3
+    goto %0 ; return
+
+; Print Value as Decimal Number ==============================================
+PRINT_VALUE:
+    ; %0 is the return address
+    ; %1 is the value to print
+
+    ; Find the Order
+    = %2 10 ; order
+    PRINT_VALUE_ORDER_LOOP:
+        < %3 %1 %2
+        if %3 @+7
+        *u %2 %2 10
+        goto @PRINT_VALUE_ORDER_LOOP
+
+    ; Print the value
+    PRINT_VALUE_LOOP:
+        /u %2 %2 10 ; reduce order
+        /u %3 %1 %2 ; Value at this place
+        ; Print value
+        + %4 %3 #30 ; ASCII symbol of value
+        out %4 0 0
+        ; Reduce value
+        *u %4 %3 %2
+        - %1 %1 %4 ; value = value - place * order
+        != %3 %2 1
+        if %3 @PRINT_VALUE_LOOP
+    goto %0 ; Return
+
+BEGIN:
+
+= %0 @+6
+= %1 5
+goto @ALLOCATE
+
+halt
+END:

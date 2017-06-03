@@ -108,6 +108,10 @@ public:
         }
         finalized = true;
     }
+
+    size_t size() {
+        return registers.size();
+    }
 };
 
 #endif
