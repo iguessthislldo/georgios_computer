@@ -37,7 +37,7 @@ value or the value of register**
         - 0b00000001
     - Arguments: 2
         - Register to Set
-        - Register or Value to Use
+        - Value to Use
 - `save`
     - Save a value to memory offset by a value.
         - M[I1 + I2] = I3
@@ -137,7 +137,7 @@ value or the value of register**
         - Argument value to send to device
 - `++`
     - Increment Register
-        - R[R1] = R[R1] + 1
+        - R[R1] = R[I1] + 1
     - OP Code: 16
         - 0x10
         - 0b00010000
@@ -145,7 +145,7 @@ value or the value of register**
         - Register to increment
 - `--`
     - Decrement Register
-        - R[R1] = R[R1] - 1
+        - R[I1] = R[I1] - 1
     - OP Code: 17
         - 0x11
         - 0b00010001
@@ -174,10 +174,10 @@ value or the value of register**
 
 Take the result of an operation of two values and assign it to a register.
 
-- R[R1] = OP(R2,R3)
-- R[R1] = OP(R[R2],R3)
-- R[R1] = OP(R2,R[R3])
-- R[R1] = OP(R[R2],R[R3])
+- R[I1] = OP(I2,I3)
+- R[I1] = OP(R[I2],I3)
+- R[I1] = OP(I2,R[I3])
+- R[I1] = OP(R[I2],R[I3])
 
 ---
 
