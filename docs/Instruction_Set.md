@@ -137,7 +137,7 @@ value or the value of register**
         - Argument value to send to device
 - `++`
     - Increment Register
-        - R[R1] = R[I1] + 1
+        - R[I1] = R[I1] + 1
     - OP Code: 16
         - 0x10
         - 0b00010000
