@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "word.h"
 #include "System.hpp"
 
 /*
@@ -7,7 +8,7 @@
  * TODO: Overflow
  */
 
-void System::alu_rri_verbose(const char * op_str, bool first, bool second, word_t & i1, word_t & i2, word_t & i3, word_t & value) {
+void System::alu_rri_verbose(const char * op_str, bool first, bool second, word & i1, word & i2, word & i3, word & value) {
     fprintf(stderr, "        %%%s = ", registers[i1].name().c_str());
     if (first) {
         fprintf(stderr, "%%%s(%u)", registers[i2].name().c_str(), registers[i2].value());
@@ -23,20 +24,20 @@ void System::alu_rri_verbose(const char * op_str, bool first, bool second, word_
     fprintf(stderr, " = %u", value);
 }
 
-System::word_t System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
-    
+word System::execute(word i0, word i1, word i2, word i3) {
+
     if (verbose)
         fprintf(stderr, "%u", registers[rpc].value());
 
-    word_t pc_change = 4;
+    word pc_change = 4;
 
     // Extract OP Code
-    word_t op = i0 >> 2;
+    word op = i0 >> 2;
     // Extract Arugument Indirection
-    word_t first = i0 & 2;
-    word_t second = i0 & 1;
+    word first = i0 & 2;
+    word second = i0 & 1;
 
-    word_t a, b, c;
+    word a, b, c;
 
     if (first && i2 < registers.size()) {
         b = registers[i2].value();
@@ -49,9 +50,9 @@ System::word_t System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
         c = i3;
     }
 
-    word_t next_cflags = 0x00;
+    word next_cflags = 0x00;
 //dec|hex|bin    |name |ALU OP|DESCRIPTION                          |ARGUMENTS      |
-    word_t value;
+    word value;
     switch (op) {
 //00 |00 |000000 |nop  |      |Do nothing                           |_ _ _ 00 0 000 |
     case 0x00:
@@ -82,11 +83,11 @@ System::word_t System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
             fprintf(stderr, "    save\n");
         value = second ? registers[i2].value() : i2;
         if (first) {
-            memory[registers[i1].value()] = value;
+            memory.full(registers[i1].value(), value);
             if (verbose)
                 fprintf(stderr, "        M[%%%s(%u)] = ", registers[i1].name().c_str(), registers[i1].value());
         } else {
-            memory[i1] = value;
+            memory.full(i1, value);
             if (verbose)
                 fprintf(stderr, "        M[%u] = ", i1);
         }
@@ -106,14 +107,14 @@ System::word_t System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
             fprintf(stderr, "        %%%s = M[", registers[i1].name().c_str());
         }
         value = first ? registers[i2].value() : i2;
-        registers[i1].program_set_value(memory[value]);
+        registers[i1].program_set_value(memory.full(value));
         if (verbose) {
             if (first) {
                 fprintf(stderr, "%%%s(%u)", registers[i2].name().c_str(), value);
             } else {
                 fprintf(stderr, "%u", value);
             }
-            fprintf(stderr, "] = %u", memory[value]);
+            fprintf(stderr, "] = %u", memory.full(value));
         }
         pc_change = 3;
         break;
@@ -257,7 +258,7 @@ System::word_t System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
     case 0x26:
         if (verbose)
             fprintf(stderr, "    *s\n");
-        value = static_cast<signed_word_t>(b) * static_cast<signed_word_t>(c);
+        value = static_cast<signed_word>(b) * static_cast<signed_word>(c);
         if (verbose) alu_rri_verbose("*s", first, second, i1, i2, i3, value);
         registers[i1].value(value);
         break;
@@ -265,7 +266,7 @@ System::word_t System::execute(word_t i0, word_t i1, word_t i2, word_t i3) {
     case 0x27:
         if (verbose)
             fprintf(stderr, "    /s\n");
-        value = static_cast<signed_word_t>(b) / static_cast<signed_word_t>(c);
+        value = static_cast<signed_word>(b) / static_cast<signed_word>(c);
         if (verbose) alu_rri_verbose("/s", first, second, i1, i2, i3, value);
         registers[i1].value(value);
         break;

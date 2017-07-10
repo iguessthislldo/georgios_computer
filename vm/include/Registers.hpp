@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "word.h"
+
 using std::string;
 using std::to_string;
 
@@ -22,11 +24,10 @@ public:
     }
 };
 
-template <class T>
 class Register {
 private:
     string _name;
-    T _value;
+    word _value;
     bool read_only;
 public:
     Register(const string & name, bool read_only) {
@@ -42,35 +43,43 @@ public:
         _name = name;
     }
 
-    T value() {
+    word value() {
         return _value;
     }
 
-    T value(unsigned value) {
-        _value = value;
-        return value;
+    half_word half_value(bool upper) {
+        half_word bytes[2] = {0, 0};
+        full_to_half(&bytes[0], &_value);
+        return bytes[upper];
     }
 
-    void program_set_value(T value) {
-        if (read_only) {
-            throw Register_Exception(
-                string("Attempt to write read only register: ") + _name
-            );
-        } else {
+    word value(word value) {
+        return _value = value;
+    }
+
+    word half_value(half_word value, bool upper) {
+        half_word bytes[2] = {0, 0};
+        full_to_half(&bytes[0], &_value);
+        bytes[upper] = value;
+        half_to_full(&_value, &bytes[0]);
+        return _value;
+    }
+
+    void program_set_value(word value) {
+        if (!read_only) {
             _value = value;
         }
     }
 };
 
-template <class T>
 class Registers {
 private:
-    std::vector<Register<T>> registers;
+    std::vector<Register> registers;
     bool finalized = false;
     unsigned _special;
 
 public:
-    Register<T> & operator[] (unsigned i) {
+    Register & operator[] (unsigned i) {
         if (!finalized) {
             throw Register_Exception("Registers are not finialized");
         }
