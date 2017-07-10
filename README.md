@@ -4,6 +4,6 @@ written in C++ with schematics in
 [gschem](http://wiki.geda-project.org/geda:gaf).
 
 ## [Instruction Set](docs/Instruction_Set.md)
-Instructions are 1 to 4 16 bit words. Includes branching, arithmitic, and,
+Instructions are 1 to 4 16 bit words. Includes branching, arithmetic, and,
 logical instructions.
 

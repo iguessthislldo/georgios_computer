@@ -2,7 +2,7 @@
 ## Instruction Format
 
 Instructions consist of 1 to 4 16 bit words (I0, I1, I2, I3). I0 contains the
-OP codes and other directives. The rest are arguments, which are interpeted or
+OP codes and other directives. The rest are arguments, which are interpreted or
 ignored depending on I0.
 
 `OP[8], Signed_Words[1], Indirection[3], Unused[2], Byte_Offset[1], Half_Words[1]`
@@ -217,7 +217,7 @@ Take the result of an operation of two values and assign it to a register.
         - 0x46
         - 0b01000110
 - `>>>`
-    - Arithmatic Right Bit Shift of two values.
+    - Arithmetic Right Bit Shift of two values.
     - OP Code: 71
         - 0x47
         - 0b01000111
@@ -267,7 +267,7 @@ Take the result of an operation of two values and assign it to a register.
         - 0x55
         - 0b1010101
 - `halt`
-    - Stop the computer by stoping the clock.
+    - Stop the computer.
     - OP Code: 255
         - 0xFF
         - 0b11111111
