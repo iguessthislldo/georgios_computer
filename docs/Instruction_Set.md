@@ -1,21 +1,20 @@
 # Georgios Instruction Set
 ## Instruction Format
 
-Instructions consist of 1 to 4 16 bit words (I0, I1, I2, I3). I0 contains the
-OP codes and other directives. The rest are arguments, which are interpreted or
-ignored depending on I0.
+Instructions consist of 1 to 4 16 bit words (`I0`, `I1`, `I2`, `I3`).
+`I0` contains the `OP` code and other directives.
+The rest are arguments, which are interpreted or ignored depending on `I0`.
 
-`OP[8], Signed_Words[1], Indirection[3], Unused[2], Byte_Offset[1], Half_Words[1]`
+`OP[8], Byte_Offsets[3], Size[1], Indirection[3], Special_Argument[1]`
 
-- OP is the 8 bit OP Code for the instruction.
-- Signed\_Words says the arguments are signed (2's complement). This will have
-different meanings (or no meaning) depending on the instruction.
-- Indirection indicates which of the arguments (I1, I2, I3) should taken as
-values in the instruction or used to select the values from registers.
-- If Half\_Words is true, then Byte\_Offset dictates which half of the buses
-to use. 0 uses the lower byte [0-7], while 1 uses the higher byte [8-15].
-- Half\_Words indicates that the instruction is 8 bits. This doesn't apply to
-all instructions and arguments.
+- `OP` is the 8 bit OP Code for the instruction.
+- `Byte_Offsets` directs how which bytes are used if `Size` is true.
+- `Size` indicates that the instruction uses 8 bit words.
+- `Indirection` indicates which of the arguments (`I1`, `I2`, `I3`) should
+taken as values in the instruction or used to select the values from
+registers. Behavior does not change based on OP.
+- `Special_Argument` depends on the instruction. For arithmetic instructions,
+it specifies that the operation is signed.
 
 ## Instruction OP Codes
 
@@ -192,80 +191,85 @@ Take the result of an operation of two values and assign it to a register.
         - 0x41
         - 0b01000001
 - `*`
-    - Divide two values.
+    - Multiply two values.
     - OP Code: 66
         - 0x42
         - 0b01000010
-- `&&`
-    - Logical AND of two values.
+- `/`
+    - Divide two values.
     - OP Code: 67
         - 0x43
         - 0b01000011
-- `||`
-    - Logical OR of two values.
+- `&&`
+    - Logical AND of two values.
     - OP Code: 68
         - 0x44
         - 0b01000100
-- `<<`
-    - Left Bit Shift of two values.
+- `||`
+    - Logical OR of two values.
     - OP Code: 69
         - 0x45
         - 0b01000101
-- `>>`
-    - Right Bit Shift of two values.
+- `<<`
+    - Left Bit Shift of two values.
     - OP Code: 70
         - 0x46
         - 0b01000110
-- `>>>`
-    - Arithmetic Right Bit Shift of two values.
+- `>>`
+    - Right Bit Shift of two values.
     - OP Code: 71
         - 0x47
         - 0b01000111
-- `&`
-    - Bitwise AND of two values.
+- `>>>`
+    - Arithmetic Right Bit Shift of two values.
     - OP Code: 72
         - 0x48
         - 0b01001000
-- `|`
-    - Bitwise OR of two values.
+- `&`
+    - Bitwise AND of two values.
     - OP Code: 73
         - 0x49
         - 0b01001001
-- `^`
-    - Bitwise XOR of two values.
+- `|`
+    - Bitwise OR of two values.
     - OP Code: 74
         - 0x4A
         - 0b01001010
+- `^`
+    - Bitwise XOR of two values.
+    - OP Code: 75
+        - 0x4B
+        - 0b01001011
 - `==`
     - Returns true if two values are equal
     - OP Code: 80
         - 0x50
-        - 0b1010000
+        - 0b01010000
 - `!=`
     - Returns false if two values are equal
     - OP Code: 81
         - 0x51
-        - 0b1010001
+        - 0b01010001
 - `>`
     - Returns true if I2 is greater than I3
     - OP Code: 82
         - 0x52
-        - 0b1010010
+        - 0b01010010
 - `>=`
     - Returns true if I2 is greater than or equal to I3
     - OP Code: 83
         - 0x53
-        - 0b1010011
+        - 0b01010011
 - `<`
     - Returns true if I2 is less than I3
     - OP Code: 84
         - 0x54
-        - 0b1010100
+        - 0b01010100
 - `<=`
     - Returns true if I2 is less than or equal to I3
     - OP Code: 85
         - 0x55
-        - 0b1010101
+        - 0b01010101
 - `halt`
     - Stop the computer.
     - OP Code: 255
